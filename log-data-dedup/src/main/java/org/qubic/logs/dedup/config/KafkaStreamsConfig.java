@@ -1,0 +1,63 @@
+package org.qubic.logs.dedup.config;
+
+import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.common.serialization.Serdes;
+import org.apache.kafka.streams.KafkaStreams;
+import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
+import org.qubic.logs.dedup.serde.EventLogSerde;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.kafka.annotation.KafkaStreamsDefaultConfiguration;
+import org.springframework.kafka.config.KafkaStreamsConfiguration;
+import org.springframework.kafka.config.StreamsBuilderFactoryBeanConfigurer;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import static org.apache.kafka.streams.StreamsConfig.*;
+
+@Slf4j
+@Configuration
+@EnableConfigurationProperties(KafkaStreamsProperties.class)
+public class KafkaStreamsConfig {
+
+    @Value(value = "${spring.kafka.bootstrap-servers}")
+    private String bootstrapAddress;
+
+    private final KafkaStreamsProperties streamsProperties;
+
+    public KafkaStreamsConfig(KafkaStreamsProperties streamsProperties) {
+        this.streamsProperties = streamsProperties;
+    }
+
+    @SuppressWarnings("resource")
+    @Bean(name = KafkaStreamsDefaultConfiguration.DEFAULT_STREAMS_CONFIG_BEAN_NAME)
+    KafkaStreamsConfiguration kafkaStreamsConfig() {
+        Map<String, Object> props = new HashMap<>(streamsProperties.asProperties());
+        props.put(BOOTSTRAP_SERVERS_CONFIG, bootstrapAddress);
+        props.put(DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.String().getClass().getName());
+        props.put(DEFAULT_VALUE_SERDE_CLASS_CONFIG, EventLogSerde.class.getName());
+        return new KafkaStreamsConfiguration(props);
+    }
+
+    @Bean
+    public StreamsBuilderFactoryBeanConfigurer configurer() {
+        return factoryBean -> {
+            factoryBean.setStateListener((newState, oldState) -> {
+                log.info("State transition: {} -> {}", oldState, newState);
+                if (newState == KafkaStreams.State.ERROR) {
+                    log.error("Kafka Streams entered ERROR state");
+                }
+            });
+
+            // unexpected exception should never continue as we rely on deduplication.
+            // shut down all dedup stream applications in case of an unexpected error for error analysis.
+            factoryBean.setStreamsUncaughtExceptionHandler(throwable -> {
+                log.error("Uncaught exception in Kafka Streams", throwable);
+                return StreamsUncaughtExceptionHandler.StreamThreadExceptionResponse.SHUTDOWN_APPLICATION;
+            });
+        };
+    }
+}
