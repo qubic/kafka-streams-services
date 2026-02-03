@@ -49,6 +49,8 @@ public class DeduplicationApplicationIT {
 
         KafkaTemplate<String, EventLog> template = createKafkaTemplate();
         template.send("log-in", "42", eventLog);
+        template.send("log-in", "42", eventLog);
+        template.send("log-in", "42", eventLog);
 
         Consumer<String, EventLog> consumer = createConsumer();
         this.embeddedKafka.consumeFromAnEmbeddedTopic(consumer, "log-out");

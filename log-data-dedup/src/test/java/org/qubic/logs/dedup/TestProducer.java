@@ -7,10 +7,8 @@ import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.StringSerializer;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
-import java.util.UUID;
+import java.util.*;
+import java.util.random.RandomGenerator;
 
 public class TestProducer {
 
@@ -28,8 +26,8 @@ public class TestProducer {
             EventLog event = EventLog.builder()
                     .logId(i)
                     .logDigest(UUID.randomUUID().toString().substring(0, 16))
-                    .tick(System.currentTimeMillis())
-                    .timestamp("2026-01-27 12:00:00")
+                    .tick(RandomGenerator.getDefault().nextLong())
+                    .timestamp(System.currentTimeMillis())
                     .build();
 
             Map<String, Object> body = new HashMap<>();

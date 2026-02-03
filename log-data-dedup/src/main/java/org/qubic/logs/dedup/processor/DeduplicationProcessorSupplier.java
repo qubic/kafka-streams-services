@@ -5,20 +5,22 @@ import org.apache.kafka.streams.processor.api.Processor;
 import org.apache.kafka.streams.processor.api.ProcessorSupplier;
 import org.qubic.logs.dedup.model.EventLog;
 
+import java.time.Duration;
+
 public class DeduplicationProcessorSupplier implements ProcessorSupplier<String, EventLog, String, EventLog> {
 
     private final String storeName;
-    private final long retentionMs; // FIXME remove retention here
     private final MeterRegistry meterRegistry;
+    private final Duration retention;
 
-    public DeduplicationProcessorSupplier(String storeName, long retentionMs, MeterRegistry meterRegistry) {
+    public DeduplicationProcessorSupplier(String storeName, Duration retention, MeterRegistry meterRegistry) {
         this.storeName = storeName;
-        this.retentionMs = retentionMs;
         this.meterRegistry = meterRegistry;
+        this.retention = retention;
     }
 
     @Override
     public Processor<String, EventLog, String, EventLog> get() {
-        return new DeduplicationProcessor(storeName, retentionMs, meterRegistry);
+        return new DeduplicationProcessor(storeName, retention, meterRegistry);
     }
 }

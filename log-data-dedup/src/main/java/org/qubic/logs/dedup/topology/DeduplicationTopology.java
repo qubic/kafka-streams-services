@@ -11,14 +11,15 @@ import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.kstream.Consumed;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.Produced;
-import org.apache.kafka.streams.state.KeyValueStore;
 import org.apache.kafka.streams.state.StoreBuilder;
 import org.apache.kafka.streams.state.Stores;
+import org.apache.kafka.streams.state.WindowStore;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import java.time.Duration;
+import java.util.HashMap;
 
 @Slf4j
 @Configuration
@@ -52,40 +53,35 @@ public class DeduplicationTopology {
         log.info("Output topic: {}", outputTopic);
         log.info("Retention: {} days", retentionDays);
 
-        long retentionMs = Duration.ofDays(retentionDays).toMillis();
+        Duration retentionDuration = Duration.ofDays(retentionDays);
 
-        ProcessorSupplier<String, EventLog, String, EventLog> processorSupplier = new DeduplicationProcessorSupplier(storeName, retentionMs, meterRegistry);
-
-        // Create a state store for deduplication
-        StoreBuilder<KeyValueStore<String, Long>> dedupStoreBuilder =
-                Stores.keyValueStoreBuilder(
-                                Stores.persistentKeyValueStore(storeName),
+        // Create a window store for deduplication with automatic expiry
+        StoreBuilder<WindowStore<String, Long>> dedupStoreBuilder =
+                Stores.windowStoreBuilder(
+                                Stores.persistentWindowStore(
+                                        storeName,
+                                        retentionDuration,
+                                        retentionDuration,
+                                        false
+                                ),
                                 Serdes.String(),
                                 Serdes.Long()
                         )
-                        .withCachingEnabled();
-//                        .withLoggingEnabled(new HashMap<>());  // Changelog for fault tolerance
-
+                        .withCachingEnabled()
+                        .withLoggingEnabled(new HashMap<>());  // Changelog for fault tolerance. Map contains optional topic configuration.
         streamsBuilder.addStateStore(dedupStoreBuilder);
 
         // Input stream
-        KStream<String, EventLog> input = streamsBuilder.stream(
-                inputTopic,
-                Consumed.with(Serdes.String(), eventLogSerde)
-        );
+        KStream<String, EventLog> input = streamsBuilder.stream(inputTopic, Consumed.with(Serdes.String(), eventLogSerde));
 
         // Deduplication transformation
-        KStream<String, EventLog> deduplicated = input
-                .process(processorSupplier, storeName);
+        ProcessorSupplier<String, EventLog, String, EventLog> processorSupplier = new DeduplicationProcessorSupplier(storeName, retentionDuration, meterRegistry);
+        KStream<String, EventLog> deduplicated = input.process(processorSupplier, storeName);
 
         // Output stream (with logDigest as key for consistent partitioning)
-        deduplicated.to(
-                outputTopic,
-                Produced.with(Serdes.String(), eventLogSerde)
-        );
+        deduplicated.to(outputTopic, Produced.with(Serdes.String(), eventLogSerde));
 
         log.info("Topology built successfully");
-
         return deduplicated;
     }
 }

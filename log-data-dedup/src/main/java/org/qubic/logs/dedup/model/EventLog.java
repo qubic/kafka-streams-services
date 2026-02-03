@@ -16,36 +16,34 @@ import java.util.Map;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class EventLog {
 
+    @JsonProperty("type")
+    private int type;
+
+    @JsonProperty("epoch")
+    private int epoch;
+
+    @JsonProperty("tick")
+    private long tick;
+
+    @JsonProperty("index")
+    private long index;
+
+    @JsonProperty("logId")
+    private long logId;
+
+    @JsonProperty("logDigest")
+    private String logDigest;
+
+    @JsonProperty("txHash")
+    private String txHash;
+
+    @JsonProperty("timestamp")
+    private long timestamp;
+
     @JsonProperty("body")
     private Map<String, Object> body;
 
     @JsonProperty("bodySize")
     private int bodySize;
 
-    @JsonProperty("epoch")
-    private int epoch;
-
-    @JsonProperty("logDigest")
-    private String logDigest;
-
-    @JsonProperty("logId")
-    private long logId;
-
-    @JsonProperty("logTypename")
-    private String logTypename;
-
-    @JsonProperty("ok")
-    private boolean ok;
-
-    @JsonProperty("tick")
-    private long tick;
-
-    @JsonProperty("timestamp")
-    private String timestamp;
-
-    @JsonProperty("txHash")
-    private String txHash;
-
-    @JsonProperty("type")
-    private int type;
 }
