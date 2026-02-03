@@ -5,7 +5,6 @@ import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 import org.qubic.logs.dedup.serde.EventLogSerde;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -16,15 +15,13 @@ import org.springframework.kafka.config.StreamsBuilderFactoryBeanConfigurer;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.apache.kafka.streams.StreamsConfig.*;
+import static org.apache.kafka.streams.StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG;
+import static org.apache.kafka.streams.StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG;
 
 @Slf4j
 @Configuration
-@EnableConfigurationProperties(KafkaStreamsProperties.class)
+@EnableConfigurationProperties({KafkaStreamsProperties.class, DeduplicationProperties.class})
 public class KafkaStreamsConfig {
-
-    @Value(value = "${spring.kafka.bootstrap-servers}")
-    private String bootstrapAddress;
 
     private final KafkaStreamsProperties streamsProperties;
 
@@ -36,9 +33,9 @@ public class KafkaStreamsConfig {
     @Bean(name = KafkaStreamsDefaultConfiguration.DEFAULT_STREAMS_CONFIG_BEAN_NAME)
     KafkaStreamsConfiguration kafkaStreamsConfig() {
         Map<String, Object> props = new HashMap<>(streamsProperties.asProperties());
-        props.put(BOOTSTRAP_SERVERS_CONFIG, bootstrapAddress);
         props.put(DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.String().getClass().getName());
         props.put(DEFAULT_VALUE_SERDE_CLASS_CONFIG, EventLogSerde.class.getName());
+        log.info("Kafka Streams configuration: {}", props);
         return new KafkaStreamsConfiguration(props);
     }
 
