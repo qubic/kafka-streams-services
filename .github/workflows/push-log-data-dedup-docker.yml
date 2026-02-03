@@ -7,7 +7,7 @@ permissions:
 on:
   push:
     tags:
-      - 'log-data-dedup/v[0-9]+.[0-9]+.[0-9]+'
+      - 'log-data-dedup/v*.*.*'
 
 jobs:
   build-and-push:
@@ -33,8 +33,20 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push Docker image
+      - name: Extract module and version from tag
+        id: extract
         run: |
-          IMAGE=ghcr.io/qubic/log-data-dedup:${{ github.ref_name }}
-          docker build -f log-data-dedup/Dockerfile log-data-dedup --tag "$IMAGE"
-          docker push "$IMAGE"
+          TAG=${GITHUB_REF#refs/tags/}
+          MODULE_NAME=$(echo "$TAG" | cut -d/ -f1)
+          VERSION=$(echo "$TAG" | cut -d/ -f2)
+          echo "module=$MODULE_NAME" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./log-data-dedup
+          file: ./log-data-dedup/Dockerfile
+          push: true
+          tags: ghcr.io/qubic/tick-data-publisher:${{ steps.extract.outputs.version }}
+
