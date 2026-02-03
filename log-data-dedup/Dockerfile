@@ -1,12 +1,13 @@
-FROM eclipse-temurin:17-jre-alpine
+FROM eclipse-temurin:21-jre-alpine
 
 LABEL maintainer="mio@qubic.org"
 LABEL description="Event Log Deduplication Service"
 
 WORKDIR /app
 
-# Copy JAR
-COPY target/dedup-app-1.0.0.jar app.jar
+# Copy the built application JAR from the module's target directory
+# Use a wildcard to avoid hardcoding the version
+COPY target/log-data-dedup-*.jar app.jar
 
 # Create state directory
 RUN mkdir -p /var/kafka-streams && \
