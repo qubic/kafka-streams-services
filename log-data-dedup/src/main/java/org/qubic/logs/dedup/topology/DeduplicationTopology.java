@@ -44,15 +44,15 @@ public class DeduplicationTopology {
         // Create a window store for deduplication with automatic expiry
         StoreBuilder<WindowStore<String, Long>> dedupStoreBuilder =
                 Stores.windowStoreBuilder(
-                        Stores.persistentWindowStore(
-                                properties.getStoreName(),
-                                properties.getRetentionDuration(),
-                                properties.getRetentionDuration(),
-                                false
-                        ),
-                        Serdes.String(),
-                        Serdes.Long()
-                )
+                                Stores.persistentWindowStore(
+                                        properties.getStoreName(),
+                                        properties.getRetentionDuration(),
+                                        properties.getRetentionDuration(),
+                                        false
+                                ),
+                                Serdes.String(),
+                                Serdes.Long()
+                        )
                         .withCachingEnabled()
                         .withLoggingEnabled(new HashMap<>());  // Changelog for fault tolerance. Optional topic configuration.
         streamsBuilder.addStateStore(dedupStoreBuilder);
