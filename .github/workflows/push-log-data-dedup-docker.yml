@@ -48,5 +48,5 @@ jobs:
           context: ./log-data-dedup
           file: ./log-data-dedup/Dockerfile
           push: true
-          tags: ghcr.io/qubic/tick-data-publisher:${{ steps.extract.outputs.version }}
+          tags: ghcr.io/qubic/log-data-dedup:${{ steps.extract.outputs.version }}
 
