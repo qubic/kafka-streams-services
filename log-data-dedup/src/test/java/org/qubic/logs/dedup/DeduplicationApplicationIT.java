@@ -29,7 +29,7 @@ import static org.assertj.core.api.Assertions.assertThat;
         "spring.kafka.bootstrap-servers=${spring.embedded.kafka.brokers}",
         "dedup.input-topic=log-in",
         "dedup.output-topic=log-out",
-        "streams.state-dir=/tmp/kafka-streams-test"
+        "streams.state-dir=/tmp/${random.uuid}"
 })
 public class DeduplicationApplicationIT {
 
