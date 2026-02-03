@@ -3,6 +3,7 @@ name: Build and test all submodules
 on:
   push:
   pull_request:
+  workflow_dispatch:
 
 jobs:
   build:
