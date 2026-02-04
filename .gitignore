@@ -10,15 +10,21 @@ target/
 # local property files
 application-local.properties
 
-# store directories
+# potential store directories
 store/
+data/
 
 # log files
 *.log
 *.log.*.gz
 
-### IntelliJ IDEA ###
+# temp files
+.lock
+kafka-streams-process-metadata
+
+# IntelliJ IDEA
 .idea
 *.iws
 *.iml
 *.ipr
+
