@@ -32,7 +32,7 @@ class DeduplicationProcessorTest {
 
     @Test
     void process_givenUnique_thenForward() {
-        EventLog event = EventLog.builder().tick(100).index(1).build();
+        EventLog event = EventLog.builder().tickNumber(100).index(1).build();
         Record<String, EventLog> record = new Record<>("key", event, 1000L);
         WindowStoreIterator<Long> iterator = mock();
         when(iterator.hasNext()).thenReturn(false);
@@ -47,7 +47,7 @@ class DeduplicationProcessorTest {
 
     @Test
     void process_givenDuplicate_thenDoNotForward() {
-        EventLog event = EventLog.builder().tick(100).index(1).build();
+        EventLog event = EventLog.builder().tickNumber(100).index(1).build();
         Record<String, EventLog> record = new Record<>("key", event, 1000L);
         WindowStoreIterator<Long> iterator = mock();
         when(iterator.hasNext()).thenReturn(true);
@@ -62,7 +62,7 @@ class DeduplicationProcessorTest {
 
     @Test
     void processRecord_givenUnique_thenReturnRecord() {
-        EventLog event = EventLog.builder().tick(200).index(2).build();
+        EventLog event = EventLog.builder().tickNumber(200).index(2).build();
         Record<String, EventLog> record = new Record<>("key", event, 2000L);
         WindowStoreIterator<Long> iterator = mock();
         when(iterator.hasNext()).thenReturn(false);
@@ -76,7 +76,7 @@ class DeduplicationProcessorTest {
 
     @Test
     void processRecord_givenDuplicate_thenReturnNull() {
-        EventLog event = EventLog.builder().tick(200).index(2).build();
+        EventLog event = EventLog.builder().tickNumber(200).index(2).build();
         Record<String, EventLog> record = new Record<>("key", event, 2000L);
         WindowStoreIterator<Long> iterator = mock();
         when(iterator.hasNext()).thenReturn(true);

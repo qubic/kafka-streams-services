@@ -25,11 +25,11 @@ class EventLogSerdeTest {
         EventLog original = EventLog.builder()
                 .type(1)
                 .epoch(2)
-                .tick(3L)
+                .tickNumber(3L)
                 .index(4L)
                 .logId(5L)
                 .logDigest("digest")
-                .txHash("transactionHash")
+                .transactionHash("transactionHash")
                 .timestamp(123456789L)
                 .body(body)
                 .build();

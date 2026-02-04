@@ -26,7 +26,7 @@ public class TestProducer {
             EventLog event = EventLog.builder()
                     .logId(i)
                     .logDigest(UUID.randomUUID().toString().substring(0, 16))
-                    .tick(RandomGenerator.getDefault().nextLong())
+                    .tickNumber(RandomGenerator.getDefault().nextLong())
                     .timestamp(System.currentTimeMillis())
                     .build();
 

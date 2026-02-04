@@ -74,7 +74,7 @@ class DeduplicationProcessorTopologyTest {
     @Test
     void shouldForwardNewRecord() {
         EventLog event = EventLog.builder()
-                .tick(42)
+                .tickNumber(42)
                 .index(101)
                 .logDigest("digest-1")
                 .build();
@@ -85,14 +85,14 @@ class DeduplicationProcessorTopologyTest {
         assertThat(outputTopic.readValuesToList()).containsExactly(event);
 
         // Verify state store
-        String dedupKey = event.getTick() + ":" + event.getIndex();
+        String dedupKey = event.getTickNumber() + ":" + event.getIndex();
         assertThat(stateStore.fetch(dedupKey, Instant.EPOCH, Instant.now())).hasNext();
     }
 
     @Test
     void shouldNotForwardDuplicateRecord() {
         EventLog event = EventLog.builder()
-                .tick(42)
+                .tickNumber(42)
                 .index(101)
                 .logDigest("digest-1")
                 .build();
@@ -111,19 +111,19 @@ class DeduplicationProcessorTopologyTest {
     @Test
     void shouldForwardOneDuplicateOutsideRetentionPeriod() {
         EventLog event1 = EventLog.builder()
-                .tick(42)
+                .tickNumber(42)
                 .index(101)
                 .logDigest("1")
                 .build();
 
         EventLog event2 = EventLog.builder()
-                .tick(42)
+                .tickNumber(42)
                 .index(101)
                 .logDigest("2")
                 .build();
 
         EventLog event3 = EventLog.builder()
-                .tick(42)
+                .tickNumber(42)
                 .index(101)
                 .logDigest("3")
                 .build();

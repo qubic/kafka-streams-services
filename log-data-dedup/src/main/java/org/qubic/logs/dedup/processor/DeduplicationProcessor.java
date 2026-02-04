@@ -69,7 +69,7 @@ public class DeduplicationProcessor implements Processor<String, EventLog, Strin
 
         EventLog event = record.value();
         Assert.notNull(event, "Received null event.");
-        String dedupKey = event.getTick() + ":" + event.getIndex();
+        String dedupKey = event.getTickNumber() + ":" + event.getIndex(); // FIXME use epoch + logId first
 
         Instant recordTime = Instant.ofEpochMilli(record.timestamp());
         // Truncate timestamp to one-minute granularity to enable overwriting within the same minute
@@ -78,11 +78,12 @@ public class DeduplicationProcessor implements Processor<String, EventLog, Strin
         // Check if this key exists in the store (use explicit retention time to allow testing, we could also rely on the stores expiry policy)
         boolean isDuplicate;
         try (WindowStoreIterator<Long> iterator = stateStore.fetch(dedupKey, recordKeyTime.minus(retention), Instant.ofEpochMilli(Long.MAX_VALUE))) {
+            // TODO add check for consistency
             isDuplicate = iterator.hasNext();
         }
 
         // Always store the latest occurrence (truncated to a minute for overwriting similar keys within one minute). The value is irrelevant.
-        stateStore.put(dedupKey, record.timestamp(), recordKeyTime.toEpochMilli());
+        stateStore.put(dedupKey, record.timestamp(), recordKeyTime.toEpochMilli()); // TODO store consistency check data instead of timestamp
 
         if (isDuplicate) {
             // Found a duplicate within the retention window

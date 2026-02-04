@@ -42,7 +42,7 @@ public class DeduplicationApplicationIT {
 
         EventLog eventLog = EventLog.builder()
                 .epoch(123)
-                .tick(42)
+                .tickNumber(42)
                 .logId(1001)
                 .logDigest("digest42")
                 .build();

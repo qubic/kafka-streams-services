@@ -29,11 +29,12 @@ class EventLogJsonTest {
         EventLog log = EventLog.builder()
                 .type(1)
                 .epoch(2)
-                .tick(3L)
+                .tickNumber(3L)
                 .index(4L)
                 .logId(5L)
+                .bodySize(6)
                 .logDigest("digest")
-                .txHash("transactionHash")
+                .transactionHash("transactionHash")
                 .timestamp(123456789L)
                 .body(body)
                 .build();
@@ -43,11 +44,12 @@ class EventLogJsonTest {
 
         assertThat(root.get("type").asInt()).isEqualTo(1);
         assertThat(root.get("epoch").asInt()).isEqualTo(2);
-        assertThat(root.get("tick").asLong()).isEqualTo(3L);
+        assertThat(root.get("tickNumber").asLong()).isEqualTo(3L);
         assertThat(root.get("index").asLong()).isEqualTo(4L);
         assertThat(root.get("logId").asLong()).isEqualTo(5L);
+        assertThat(root.get("bodySize").asLong()).isEqualTo(6L);
         assertThat(root.get("logDigest").asString()).isEqualTo("digest");
-        assertThat(root.get("txHash").asString()).isEqualTo("transactionHash");
+        assertThat(root.get("transactionHash").asString()).isEqualTo("transactionHash");
         assertThat(root.get("timestamp").asLong()).isEqualTo(123456789L);
 
         JsonNode bodyNode = root.get("body");
@@ -62,11 +64,12 @@ class EventLogJsonTest {
                 {
                 "type":1,
                 "epoch":2,
-                "tick":3,
+                "tickNumber":3,
                 "index":4,
                 "logId":5,
+                "bodySize":6,
                 "logDigest":"digest",
-                "txHash":"transactionHash",
+                "transactionHash":"transactionHash",
                 "timestamp":123456789,
                 "body":{"key1":"value1","num":42}
                 }
@@ -76,11 +79,12 @@ class EventLogJsonTest {
 
         assertThat(parsed.getType()).isEqualTo(1);
         assertThat(parsed.getEpoch()).isEqualTo(2);
-        assertThat(parsed.getTick()).isEqualTo(3L);
+        assertThat(parsed.getTickNumber()).isEqualTo(3L);
         assertThat(parsed.getIndex()).isEqualTo(4L);
         assertThat(parsed.getLogId()).isEqualTo(5L);
+        assertThat(parsed.getBodySize()).isEqualTo(6L);
         assertThat(parsed.getLogDigest()).isEqualTo("digest");
-        assertThat(parsed.getTxHash()).isEqualTo("transactionHash");
+        assertThat(parsed.getTransactionHash()).isEqualTo("transactionHash");
         assertThat(parsed.getTimestamp()).isEqualTo(123456789L);
         assertThat(parsed.getBody()).isNotNull();
         assertThat(parsed.getBody().get("key1")).isEqualTo("value1");
@@ -93,11 +97,12 @@ class EventLogJsonTest {
                 {
                 "type":1,
                 "epoch":2,
-                "tick":3,
+                "tickNumber":3,
                 "index":4,
                 "logId":5,
+                "bodySize":6,
                 "logDigest":"digest",
-                "txHash":"transactionHash",
+                "transactionHash":"transactionHash",
                 "timestamp":123456789,
                 "body":{"key1":"value1","num":42},
                 "unknown":"should throw"

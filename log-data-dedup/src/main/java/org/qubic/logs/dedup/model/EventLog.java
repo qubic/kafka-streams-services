@@ -1,6 +1,5 @@
 package org.qubic.logs.dedup.model;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -14,31 +13,26 @@ import java.util.Map;
 @Data
 public class EventLog {
 
-    @JsonProperty("type")
-    private int type;
-
-    @JsonProperty("epoch")
     private int epoch;
 
-    @JsonProperty("tick")
-    private long tick;
+    private long tickNumber;
 
-    @JsonProperty("index")
     private long index;
 
-    @JsonProperty("logId")
+    private int type;
+
+    private String emittingContractIndex;
+
     private long logId;
 
-    @JsonProperty("logDigest")
     private String logDigest;
 
-    @JsonProperty("txHash")
-    private String txHash;
+    private String transactionHash;
 
-    @JsonProperty("timestamp")
     private long timestamp;
 
-    @JsonProperty("body")
+    private long bodySize;
+
     private Map<String, Object> body;
 
 }

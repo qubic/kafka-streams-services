@@ -10,6 +10,9 @@ target/
 # local property files
 application-local.properties
 
+# store directories
+store/
+
 # log files
 *.log
 *.log.*.gz
