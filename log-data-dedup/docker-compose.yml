@@ -1,12 +1,15 @@
 services:
   log-data-dedup:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ghcr.io/qubic/log-data-dedup:${DEDUP_VERSION}
+#    image: sha256:a0b9fc1c2fed5ac8ddff15bc9fafa304f4a0a1b3897f435b53e62a3bae11932f
+#    build:
+#      context: .
+#      dockerfile: Dockerfile
     container_name: log-data-dedup
+    user: 1000:1000
     environment:
-      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
-      - STREAMS_STATE_DIR=/app/state-store
+      - KAFKA_BOOTSTRAP_SERVERS=localhost:9092
+      - STREAMS_STATE_DIR=/var/kafka-streams
       - DEDUP_INPUT_TOPIC=qubic-event-logs-incoming-local
       - DEDUP_OUTPUT_TOPIC=qubic-event-logs-unique-local
       - DEDUP_RETENTION_DURATION=7d
@@ -14,8 +17,5 @@ services:
     ports:
       - "8080:8080"
     volumes:
-      - ./data/log-data-dedup/store:/app/state-store
-    restart: on-failure
-
-volumes:
-  log-data-dedup-state:
+      - ./data:/var/kafka-streams
+    restart: no
