@@ -9,6 +9,7 @@ import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.TopologyTestDriver;
 import org.apache.kafka.streams.state.Stores;
 import org.apache.kafka.streams.state.WindowStore;
+import org.apache.kafka.streams.state.WindowStoreIterator;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -34,7 +35,7 @@ class DeduplicationProcessorTopologyTest {
     private TopologyTestDriver testDriver;
     private TestInputTopic<String, EventLog> inputTopic;
     private TestOutputTopic<String, EventLog> outputTopic;
-    private WindowStore<String, Long> stateStore;
+    private WindowStore<String, String> stateStore;
 
     @BeforeEach
     void setUp() {
@@ -48,7 +49,7 @@ class DeduplicationProcessorTopologyTest {
                                 retention,
                                 false),
                         Serdes.String(),
-                        Serdes.Long()
+                        Serdes.String()
                 ),
                 "processor"
         );
@@ -74,8 +75,11 @@ class DeduplicationProcessorTopologyTest {
     @Test
     void shouldForwardNewRecord() {
         EventLog event = EventLog.builder()
-                .tickNumber(42)
-                .index(101)
+                .epoch(123)
+                .tickNumber(1)
+                .index(2)
+                .type(3)
+                .logId(4)
                 .logDigest("digest-1")
                 .build();
 
@@ -85,8 +89,11 @@ class DeduplicationProcessorTopologyTest {
         assertThat(outputTopic.readValuesToList()).containsExactly(event);
 
         // Verify state store
-        String dedupKey = event.getTickNumber() + ":" + event.getIndex();
-        assertThat(stateStore.fetch(dedupKey, Instant.EPOCH, Instant.now())).hasNext();
+        String dedupKey = event.getEpoch() + ":" + event.getLogId();
+        WindowStoreIterator<String> iterator = stateStore.fetch(dedupKey, Instant.EPOCH, Instant.now());
+        assertThat(iterator).hasNext();
+        assertThat(iterator.next().value).isEqualTo(event.getTickNumber() + ":" + event.getIndex() + ":" + event.getType() + ":" + event.getLogDigest());
+
     }
 
     @Test
@@ -111,21 +118,15 @@ class DeduplicationProcessorTopologyTest {
     @Test
     void shouldForwardOneDuplicateOutsideRetentionPeriod() {
         EventLog event1 = EventLog.builder()
-                .tickNumber(42)
                 .index(101)
-                .logDigest("1")
                 .build();
 
         EventLog event2 = EventLog.builder()
-                .tickNumber(42)
                 .index(101)
-                .logDigest("2")
                 .build();
 
         EventLog event3 = EventLog.builder()
-                .tickNumber(42)
                 .index(101)
-                .logDigest("3")
                 .build();
 
         inputTopic.pipeInput("key", event1);

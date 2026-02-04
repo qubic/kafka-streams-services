@@ -42,7 +42,7 @@ public class DeduplicationTopology {
         log.info("Retention duration: [{}]", properties.getRetentionDuration());
 
         // Create a window store for deduplication with automatic expiry
-        StoreBuilder<WindowStore<String, Long>> dedupStoreBuilder =
+        StoreBuilder<WindowStore<String, String>> dedupStoreBuilder =
                 Stores.windowStoreBuilder(
                                 Stores.persistentWindowStore(
                                         properties.getStoreName(),
@@ -51,7 +51,7 @@ public class DeduplicationTopology {
                                         false
                                 ),
                                 Serdes.String(),
-                                Serdes.Long()
+                                Serdes.String()
                         )
                         .withCachingEnabled()
                         .withLoggingEnabled(new HashMap<>());  // Changelog for fault tolerance. Optional topic configuration.

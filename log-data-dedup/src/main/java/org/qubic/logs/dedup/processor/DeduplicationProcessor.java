@@ -3,6 +3,8 @@ package org.qubic.logs.dedup.processor;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.Strings;
+import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.processor.api.Processor;
 import org.apache.kafka.streams.processor.api.ProcessorContext;
 import org.apache.kafka.streams.processor.api.Record;
@@ -14,6 +16,7 @@ import org.springframework.util.Assert;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.StringJoiner;
 
 @Slf4j
 public class DeduplicationProcessor implements Processor<String, EventLog, String, EventLog> {
@@ -23,7 +26,7 @@ public class DeduplicationProcessor implements Processor<String, EventLog, Strin
     private final Duration retention;
 
     private ProcessorContext<String, EventLog> context;
-    private WindowStore<String, Long> stateStore;
+    private WindowStore<String, String> stateStore;
 
     private Counter processedCounter;
     private Counter duplicateCounter;
@@ -69,7 +72,8 @@ public class DeduplicationProcessor implements Processor<String, EventLog, Strin
 
         EventLog event = record.value();
         Assert.notNull(event, "Received null event.");
-        String dedupKey = event.getTickNumber() + ":" + event.getIndex(); // FIXME use epoch + logId first
+        String dedupKey = String.format("%d:%d", event.getEpoch(), event.getLogId());
+        String dedupValue = String.format("%d:%d:%d:%s", event.getTickNumber(), event.getIndex(), event.getType(), event.getLogDigest());
 
         Instant recordTime = Instant.ofEpochMilli(record.timestamp());
         // Truncate timestamp to one-minute granularity to enable overwriting within the same minute
@@ -77,13 +81,24 @@ public class DeduplicationProcessor implements Processor<String, EventLog, Strin
 
         // Check if this key exists in the store (use explicit retention time to allow testing, we could also rely on the stores expiry policy)
         boolean isDuplicate;
-        try (WindowStoreIterator<Long> iterator = stateStore.fetch(dedupKey, recordKeyTime.minus(retention), Instant.ofEpochMilli(Long.MAX_VALUE))) {
-            // TODO add check for consistency
+        try (WindowStoreIterator<String> iterator = stateStore.fetch(dedupKey, recordKeyTime.minus(retention), Instant.ofEpochMilli(Long.MAX_VALUE))) {
             isDuplicate = iterator.hasNext();
+            StringJoiner errors = new StringJoiner(", ");
+            while (iterator.hasNext()) {
+                KeyValue<Long, String> value = iterator.next();
+                if (!Strings.CS.equals(value.value, dedupValue)) {
+                    errors.add(value.value);
+                    String msg = String.format("Found invalid duplicate. Current event: %s, other: [%s]", event, value.value);
+                    log.error(msg);
+                }
+            }
+            if (errors.length() > 0) {
+                throw new IllegalStateException(String.format("Found invalid duplicates. Key: [%s], value: [%s], others: [%s] ", dedupKey, dedupValue, errors));
+            }
         }
 
-        // Always store the latest occurrence (truncated to a minute for overwriting similar keys within one minute). The value is irrelevant.
-        stateStore.put(dedupKey, record.timestamp(), recordKeyTime.toEpochMilli()); // TODO store consistency check data instead of timestamp
+        // Always store the latest occurrence (truncated to a minute for overwriting similar keys within one minute).
+        stateStore.put(dedupKey, dedupValue, recordKeyTime.toEpochMilli());
 
         if (isDuplicate) {
             // Found a duplicate within the retention window
