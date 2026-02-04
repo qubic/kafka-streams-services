@@ -1,0 +1,21 @@
+services:
+  log-data-dedup:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: log-data-dedup
+    environment:
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - STREAMS_STATE_DIR=/app/state-store
+      - DEDUP_INPUT_TOPIC=qubic-event-logs-incoming-local
+      - DEDUP_OUTPUT_TOPIC=qubic-event-logs-unique-local
+      - DEDUP_RETENTION_DURATION=7d
+    network_mode: host
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data/log-data-dedup/store:/app/state-store
+    restart: on-failure
+
+volumes:
+  log-data-dedup-state:
