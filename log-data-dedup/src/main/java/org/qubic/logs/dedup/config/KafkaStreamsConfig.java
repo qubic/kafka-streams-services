@@ -6,6 +6,7 @@ import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 import org.qubic.logs.dedup.serde.EventLogSerde;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.annotation.KafkaStreamsDefaultConfiguration;
@@ -24,9 +25,12 @@ import static org.apache.kafka.streams.StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_C
 public class KafkaStreamsConfig {
 
     private final KafkaStreamsProperties streamsProperties;
+    private final ConfigurableApplicationContext applicationContext;
 
-    public KafkaStreamsConfig(KafkaStreamsProperties streamsProperties) {
+    public KafkaStreamsConfig(KafkaStreamsProperties streamsProperties,
+                              ConfigurableApplicationContext applicationContext) {
         this.streamsProperties = streamsProperties;
+        this.applicationContext = applicationContext;
     }
 
     @SuppressWarnings("resource")
@@ -42,10 +46,17 @@ public class KafkaStreamsConfig {
     @Bean
     public StreamsBuilderFactoryBeanConfigurer configurer() {
         return factoryBean -> {
+
             factoryBean.setStateListener((newState, oldState) -> {
                 log.info("State transition: {} -> {}", oldState, newState);
                 if (newState == KafkaStreams.State.ERROR) {
                     log.error("Kafka Streams entered ERROR state");
+                    try {
+                        log.info("Closing application context");
+                        applicationContext.close();
+                    } catch (Exception e) {
+                        log.warn("Error while closing application context during shutdown", e);
+                    }
                 }
             });
 
@@ -53,8 +64,10 @@ public class KafkaStreamsConfig {
             // shut down all dedup stream applications in case of an unexpected error for error analysis.
             factoryBean.setStreamsUncaughtExceptionHandler(throwable -> {
                 log.error("Uncaught exception in Kafka Streams", throwable);
+                // The following will transition into the ERROR state (see above).
                 return StreamsUncaughtExceptionHandler.StreamThreadExceptionResponse.SHUTDOWN_APPLICATION;
             });
         };
     }
+
 }
