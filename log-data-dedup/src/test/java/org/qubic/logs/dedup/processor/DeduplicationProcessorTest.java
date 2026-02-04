@@ -14,6 +14,7 @@ import org.qubic.logs.dedup.model.EventLog;
 import java.time.Duration;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.*;
 
 class DeduplicationProcessorTest {
@@ -85,5 +86,29 @@ class DeduplicationProcessorTest {
 
         Record<String, EventLog> result = processor.processRecord(record);
         assertThat(result).isNull();
+    }
+
+    @Test
+    void process_givenDuplicateWithDifferentDedupValue_thenThrows() {
+        // Same dedupKey (epoch:logId) but different dedupValue (index differs)
+        EventLog event = EventLog.builder()
+                .epoch(123).logId(2)
+                .tickNumber(100).index(1).type(3).logDigest("digest")
+                .build();
+        Record<String, EventLog> record = new Record<>("key", event, 1000L);
+
+        WindowStoreIterator<String> iterator = mock();
+        // First hasNext() -> true (isDuplicate), then loop: true, then false
+        when(iterator.hasNext()).thenReturn(true, true, true, false);
+        // Provide a mismatching dedupValue (index differs: 2 instead of 1)
+        when(iterator.next()).thenReturn(KeyValue.pair(666L, "100:2:3:digest"));
+        when(stateStore.fetch(eq("123:2"), any(), any())).thenReturn(iterator);
+
+        assertThatThrownBy(() -> processor.process(record))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Invalid duplicate");
+
+        // Ensure we did not write to the store after detecting inconsistency
+        verify(stateStore, never()).put(any(), any(), anyLong());
     }
 }

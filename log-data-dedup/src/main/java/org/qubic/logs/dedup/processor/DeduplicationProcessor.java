@@ -88,12 +88,12 @@ public class DeduplicationProcessor implements Processor<String, EventLog, Strin
                 KeyValue<Long, String> value = iterator.next();
                 if (!Strings.CS.equals(value.value, dedupValue)) {
                     errors.add(value.value);
-                    String msg = String.format("Found invalid duplicate. Current event: %s, other: [%s]", event, value.value);
+                    String msg = String.format("Invalid duplicate value: [%s] but expected [%s]. Event: %s.", value.value, dedupValue, event);
                     log.error(msg);
                 }
             }
             if (errors.length() > 0) {
-                throw new IllegalStateException(String.format("Found invalid duplicates. Key: [%s], value: [%s], others: [%s] ", dedupKey, dedupValue, errors));
+                throw new IllegalStateException(String.format("Invalid duplicate(s). Key [%s], value [%s], others: [%s].", dedupKey, dedupValue, errors));
             }
         }
 
@@ -104,7 +104,7 @@ public class DeduplicationProcessor implements Processor<String, EventLog, Strin
             // Found a duplicate within the retention window
             duplicateCounter.increment();
             if (log.isDebugEnabled()) {
-                log.debug("Duplicate found for key: {}", dedupKey);
+                log.debug("Duplicate found for key: [{}].", dedupKey);
             }
             return null;
         }
@@ -120,7 +120,7 @@ public class DeduplicationProcessor implements Processor<String, EventLog, Strin
 
     @Override
     public void close() {
-        log.info("DeduplicationProcessor closing");
+        log.info("DeduplicationProcessor closing...");
     }
 
 }
