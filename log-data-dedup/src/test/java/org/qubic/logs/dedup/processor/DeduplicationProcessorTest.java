@@ -111,4 +111,31 @@ class DeduplicationProcessorTest {
         // Ensure we did not write to the store after detecting inconsistency
         verify(stateStore, never()).put(any(), any(), anyLong());
     }
+
+    @Test
+    void process_givenIncreasingTickNumber_thenIncrementTickCounter() {
+        WindowStoreIterator<String> iterator = mock();
+        when(iterator.hasNext()).thenReturn(false);
+        when(stateStore.fetch(anyString(), any(), any())).thenReturn(iterator);
+
+        // First event with tick 100
+        EventLog event1 = EventLog.builder().epoch(123).logId(1).tickNumber(100).build();
+        processor.process(new Record<>("key1", event1, 1000L));
+        assertThat(metrics.get("dedup.ticks.processed").counter().count()).isEqualTo(1.0);
+
+        // Second event with the same tick 100
+        EventLog event2 = EventLog.builder().epoch(123).logId(2).tickNumber(100).build();
+        processor.process(new Record<>("key2", event2, 2000L));
+        assertThat(metrics.get("dedup.ticks.processed").counter().count()).isEqualTo(1.0);
+
+        // Third event with tick 101
+        EventLog event3 = EventLog.builder().epoch(123).logId(3).tickNumber(101).build();
+        processor.process(new Record<>("key3", event3, 3000L));
+        assertThat(metrics.get("dedup.ticks.processed").counter().count()).isEqualTo(2.0);
+
+        // Fourth event with lower tick 99 (should not happen in the real world normally, but let's test)
+        EventLog event4 = EventLog.builder().epoch(123).logId(4).tickNumber(99).build();
+        processor.process(new Record<>("key4", event4, 4000L));
+        assertThat(metrics.get("dedup.ticks.processed").counter().count()).isEqualTo(2.0);
+    }
 }

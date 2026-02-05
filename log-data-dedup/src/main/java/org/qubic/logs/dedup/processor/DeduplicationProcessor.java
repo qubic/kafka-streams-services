@@ -31,6 +31,9 @@ public class DeduplicationProcessor implements Processor<String, EventLog, Strin
     private Counter processedCounter;
     private Counter duplicateCounter;
     private Counter uniqueCounter;
+    private Counter tickCounter;
+
+    private long lastTickNumber = -1;
 
     public DeduplicationProcessor(String storeName, Duration retention, MeterRegistry meterRegistry) {
         this.storeName = storeName;
@@ -56,6 +59,10 @@ public class DeduplicationProcessor implements Processor<String, EventLog, Strin
                 .description("Unique events forwarded")
                 .register(meterRegistry);
 
+        this.tickCounter = Counter.builder("dedup.ticks.processed")
+                .description("Total ticks processed")
+                .register(meterRegistry);
+
         log.info("DeduplicationProcessor initialized for store: [{}].", storeName);
     }
 
@@ -72,6 +79,12 @@ public class DeduplicationProcessor implements Processor<String, EventLog, Strin
 
         EventLog event = record.value();
         Assert.notNull(event, "Received null event.");
+
+        if (event.getTickNumber() > lastTickNumber) {
+            tickCounter.increment();
+            lastTickNumber = event.getTickNumber();
+        }
+
         String dedupKey = String.format("%d:%d", event.getEpoch(), event.getLogId());
         String dedupValue = String.format("%d:%d:%d:%s", event.getTickNumber(), event.getIndex(), event.getType(), event.getLogDigest());
 
