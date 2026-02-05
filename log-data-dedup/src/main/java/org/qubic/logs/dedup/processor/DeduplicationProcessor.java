@@ -96,18 +96,7 @@ public class DeduplicationProcessor implements Processor<String, EventLog, Strin
         boolean isDuplicate;
         try (WindowStoreIterator<String> iterator = stateStore.fetch(dedupKey, recordKeyTime.minus(retention), Instant.ofEpochMilli(Long.MAX_VALUE))) {
             isDuplicate = iterator.hasNext();
-            StringJoiner errors = new StringJoiner(", ");
-            while (iterator.hasNext()) {
-                KeyValue<Long, String> value = iterator.next();
-                if (!Strings.CS.equals(value.value, dedupValue)) {
-                    errors.add(value.value);
-                    String msg = String.format("Invalid duplicate value: [%s] but expected [%s]. Event: %s.", value.value, dedupValue, event);
-                    log.error(msg);
-                }
-            }
-            if (errors.length() > 0) {
-                throw new IllegalStateException(String.format("Invalid duplicate(s). Key [%s], value [%s], others: [%s].", dedupKey, dedupValue, errors));
-            }
+            validateAgainstStoredDuplicates(iterator, dedupValue, event, dedupKey);
         }
 
         // Always store the latest occurrence (truncated to a minute for overwriting similar keys within one minute).
@@ -129,6 +118,21 @@ public class DeduplicationProcessor implements Processor<String, EventLog, Strin
         // and do no modifications, it's safe to forward the original record.
         // See ProcessorContext.forward(Record<K,V>) Javadocs.
         return record;
+    }
+
+    private static void validateAgainstStoredDuplicates(WindowStoreIterator<String> iterator, String dedupValue, EventLog event, String dedupKey) {
+        StringJoiner errors = new StringJoiner(", ");
+        while (iterator.hasNext()) {
+            KeyValue<Long, String> value = iterator.next();
+            if (!Strings.CS.equals(value.value, dedupValue)) {
+                errors.add(value.value);
+                String msg = String.format("Invalid duplicate value: [%s] but expected [%s]. Event: %s.", value.value, dedupValue, event);
+                log.error(msg);
+            }
+        }
+        if (errors.length() > 0) {
+            throw new IllegalStateException(String.format("Invalid duplicate(s). Key [%s], value [%s], others: [%s].", dedupKey, dedupValue, errors));
+        }
     }
 
     @Override
