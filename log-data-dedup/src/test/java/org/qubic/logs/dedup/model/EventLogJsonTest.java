@@ -68,6 +68,7 @@ class EventLogJsonTest {
                 "index":4,
                 "logId":5,
                 "bodySize":6,
+                "emittingContractIndex":7,
                 "logDigest":"digest",
                 "transactionHash":"transactionHash",
                 "timestamp":123456789,
@@ -83,6 +84,7 @@ class EventLogJsonTest {
         assertThat(parsed.getIndex()).isEqualTo(4L);
         assertThat(parsed.getLogId()).isEqualTo(5L);
         assertThat(parsed.getBodySize()).isEqualTo(6L);
+        assertThat(parsed.getEmittingContractIndex()).isEqualTo(7L);
         assertThat(parsed.getLogDigest()).isEqualTo("digest");
         assertThat(parsed.getTransactionHash()).isEqualTo("transactionHash");
         assertThat(parsed.getTimestamp()).isEqualTo(123456789L);
@@ -101,6 +103,7 @@ class EventLogJsonTest {
                 "index":4,
                 "logId":5,
                 "bodySize":6,
+                "emittingContractIndex":7,
                 "logDigest":"digest",
                 "transactionHash":"transactionHash",
                 "timestamp":123456789,

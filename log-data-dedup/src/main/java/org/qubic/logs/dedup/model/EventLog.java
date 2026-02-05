@@ -13,7 +13,7 @@ import java.util.Map;
 @Data
 public class EventLog {
 
-    private int epoch;
+    private long epoch;
 
     private long tickNumber;
 
@@ -21,7 +21,7 @@ public class EventLog {
 
     private int type;
 
-    private String emittingContractIndex;
+    private long emittingContractIndex;
 
     private long logId;
 
