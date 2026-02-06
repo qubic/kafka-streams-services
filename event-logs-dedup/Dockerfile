@@ -16,7 +16,7 @@ WORKDIR /app
 
 # Copy the built application JAR from the module's target directory
 # Use a wildcard to avoid hardcoding the version
-COPY target/log-data-dedup-*.jar app.jar
+COPY target/event-logs-dedup-*.jar app.jar
 
 # Create state directory
 RUN mkdir -p /var/kafka-streams && \

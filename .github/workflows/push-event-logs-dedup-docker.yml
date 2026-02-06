@@ -1,4 +1,4 @@
-name: Build and push log-data-dedup image to GHCR
+name: Build and push event-logs-dedup image to GHCR
 
 permissions:
   contents: read
@@ -7,7 +7,7 @@ permissions:
 on:
   push:
     tags:
-      - 'log-data-dedup/v*.*.*'
+      - 'event-logs-dedup/v*.*.*'
 
 jobs:
   build-and-push:
@@ -24,7 +24,7 @@ jobs:
           cache: maven
 
       - name: Build module (skip tests)
-        run: mvn -B -pl log-data-dedup -am -DskipTests package
+        run: mvn -B -pl event-logs-dedup -am -DskipTests package
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
@@ -45,8 +45,8 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          context: ./log-data-dedup
-          file: ./log-data-dedup/Dockerfile
+          context: ./event-logs-dedup
+          file: ./event-logs-dedup/Dockerfile
           push: true
-          tags: ghcr.io/qubic/log-data-dedup:${{ steps.extract.outputs.version }}
+          tags: ghcr.io/qubic/event-logs-dedup:${{ steps.extract.outputs.version }}
 

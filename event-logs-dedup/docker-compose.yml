@@ -1,11 +1,11 @@
 services:
-  log-data-dedup:
-    image: ghcr.io/qubic/log-data-dedup:${DEDUP_VERSION}
+  event-logs-dedup:
+    image: ghcr.io/qubic/event-logs-dedup:${DEDUP_VERSION}
 #    image: sha256:a0b9fc1c2fed5ac8ddff15bc9fafa304f4a0a1b3897f435b53e62a3bae11932f
 #    build:
 #      context: .
 #      dockerfile: Dockerfile
-    container_name: log-data-dedup
+    container_name: event-logs-dedup
     user: 1000:1000
     environment:
       - KAFKA_BOOTSTRAP_SERVERS=localhost:9092

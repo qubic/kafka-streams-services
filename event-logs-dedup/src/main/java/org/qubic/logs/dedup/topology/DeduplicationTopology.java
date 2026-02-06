@@ -53,8 +53,16 @@ public class DeduplicationTopology {
                                 Serdes.String(),
                                 Serdes.String()
                         )
-                        .withCachingEnabled()
-                        .withLoggingEnabled(new HashMap<>());  // Changelog for fault tolerance. Optional topic configuration.
+                        .withCachingEnabled();
+        if (properties.isChangeLogEnabled()) {
+            log.info("Changelog is enabled.");
+            // Changelog for fault tolerance. Creates a kafka changelog topic.
+            // Input: optional topic configuration.
+            dedupStoreBuilder.withLoggingEnabled(new HashMap<>()); // is default
+        } else {
+            log.warn("Changelog is disabled. This is not recommended for production use.");
+            dedupStoreBuilder.withLoggingDisabled();
+        }
         streamsBuilder.addStateStore(dedupStoreBuilder);
 
         // Input stream

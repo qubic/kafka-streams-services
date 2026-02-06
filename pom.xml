@@ -18,7 +18,7 @@
     <packaging>pom</packaging>
 
     <modules>
-        <module>log-data-dedup</module>
+        <module>event-logs-dedup</module>
     </modules>
 
     <properties>
