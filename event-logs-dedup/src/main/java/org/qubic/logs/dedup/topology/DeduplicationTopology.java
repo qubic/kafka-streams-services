@@ -68,12 +68,12 @@ public class DeduplicationTopology {
         // Input stream
         KStream<String, EventLog> input = streamsBuilder.stream(properties.getInputTopic(), Consumed.with(Serdes.String(), eventLogSerde));
 
-        // Deduplication transformation
+        // Deduplication
         ProcessorSupplier<String, EventLog, String, EventLog> processorSupplier =
                 new DeduplicationProcessorSupplier(properties.getStoreName(), properties.getRetentionDuration(), meterRegistry);
         KStream<String, EventLog> deduplicated = input.process(processorSupplier, properties.getStoreName());
 
-        // Output stream (with logDigest as key for consistent partitioning)
+        // Output stream
         deduplicated.to(properties.getOutputTopic(), Produced.with(Serdes.String(), eventLogSerde));
 
         log.info("Topology built successfully.");
