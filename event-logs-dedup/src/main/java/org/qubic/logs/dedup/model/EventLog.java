@@ -21,8 +21,6 @@ public class EventLog {
 
     private int type;
 
-    private long emittingContractIndex;
-
     private long logId;
 
     private String logDigest;

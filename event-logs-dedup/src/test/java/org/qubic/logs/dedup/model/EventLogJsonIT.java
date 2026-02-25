@@ -27,7 +27,6 @@ class EventLogJsonIT {
                 "logId":5,
                 "timestamp":123456789,
                 "bodySize":6,
-                "emittingContractIndex":7,
                 "body":{"key1":"value1","num":42},
                 "unknown":"should not be ignored"
                 }
@@ -43,14 +42,12 @@ class EventLogJsonIT {
         String json = """
                 {
                     "index":19,
-                    "emittingContractIndex":0,
                     "type":0,
                     "tickNumber":43141304,
                     "epoch":198,
                     "logDigest":"697847e48b5d36ea",
                     "logId":614864,
                     "bodySize":72,
-                    "emittingContractIndex":7,
                     "timestamp":1769660709,
                     "transactionHash":"pvoswpdzrcqasbnknyoeysbgococnivfrqtzhwhvwcvupdubmurwabtfltxo",
                     "body":{"amount":9,"destination":"XHUVLMVIXQXCFGCDULCZGCIPVWHBBECNIZBWFBWQFGTQVXAUALSQYHIDSING","source":"NPGVYDYUFNOQMBYEZFBIQBIBPLHBJHRCOOKKPFIYPEYTSUBOTHHNMPDDELJH"}}
