@@ -3,6 +3,7 @@ package org.qubic.logs.dedup.processor;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.processor.api.Processor;
@@ -21,6 +22,7 @@ import java.util.StringJoiner;
 @Slf4j
 public class DeduplicationProcessor implements Processor<String, EventLog, String, EventLog> {
 
+    private static final String BLANK = "blank";
     private final String storeName;
     private final MeterRegistry meterRegistry;
     private final Duration retention;
@@ -86,7 +88,7 @@ public class DeduplicationProcessor implements Processor<String, EventLog, Strin
         }
 
         String dedupKey = String.format("%d:%d", event.getEpoch(), event.getLogId());
-        String dedupValue = String.format("%d:%d:%d:%s", event.getTickNumber(), event.getIndex(), event.getType(), event.getLogDigest());
+        String dedupValue = String.format("%d:%d:%d:%s", event.getTickNumber(), event.getIndex(), event.getType(), StringUtils.defaultIfBlank(event.getLogDigest(), BLANK));
 
         Instant recordTime = Instant.ofEpochMilli(record.timestamp());
         // Truncate timestamp to one-minute granularity to enable overwriting within the same minute
