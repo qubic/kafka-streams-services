@@ -29,10 +29,10 @@ class EventLogJsonTest {
         EventLog log = EventLog.builder()
                 .type(1)
                 .epoch(2)
-                .tickNumber(3L)
-                .index(4L)
-                .logId(5L)
-                .bodySize(6)
+                .tickNumber(3)
+                .index(4)
+                .logId(5)
+                .bodySize(6L)
                 .logDigest("digest")
                 .transactionHash("transactionHash")
                 .timestamp(123456789L)
@@ -71,7 +71,8 @@ class EventLogJsonTest {
                 "logDigest":"digest",
                 "transactionHash":"transactionHash",
                 "timestamp":123456789,
-                "body":{"key1":"value1","num":42}
+                "body":{"key1":"value1","num":42},
+                "lastLogForTick": true
                 }
                 """;
 
@@ -89,6 +90,77 @@ class EventLogJsonTest {
         assertThat(parsed.getBody()).isNotNull();
         assertThat(parsed.getBody().get("key1")).isEqualTo("value1");
         assertThat(((Number) parsed.getBody().get("num")).intValue()).isEqualTo(42);
+        assertThat(parsed.getLastLogForTick()).isTrue();
+    }
+
+    @Test
+    void deserialize_fromJson_ignoresMissingFields() {
+        // primitives need to be present
+        String json = """
+                {
+                "type":1,
+                "epoch":2,
+                "tickNumber":3,
+                "index":4,
+                "logId":5,
+                "timestamp":123456789
+                }
+                """;
+
+        EventLog parsed = mapper.readValue(json, EventLog.class);
+        assertThat(parsed.getLastLogForTick()).isNull();
+        assertThat(parsed.getBody()).isNull();
+        assertThat(parsed.getLogDigest()).isNull();
+        assertThat(parsed.getTransactionHash()).isNull();
+    }
+
+    @Test
+    void serialize_afterDeserialize_fieldsNotPresentInIncomingJsonAreNotPresentInOutgoingJson() {
+        String json = """
+                {
+                "type":1,
+                "epoch":2,
+                "tickNumber":3,
+                "index":4,
+                "logId":5,
+                "timestamp":123456789
+                }
+                """;
+
+        EventLog parsed = mapper.readValue(json, EventLog.class);
+        String outgoingJson = mapper.writeValueAsString(parsed);
+        JsonNode root = mapper.readTree(outgoingJson);
+
+        assertThat(root.has("logDigest")).isFalse();
+        assertThat(root.has("transactionHash")).isFalse();
+        assertThat(root.has("bodySize")).isFalse();
+        assertThat(root.has("body")).isFalse();
+        assertThat(root.has("lastLogForTick")).isFalse();
+
+        // Check that primitives are present
+        assertThat(root.has("type")).isTrue();
+        assertThat(root.has("epoch")).isTrue();
+        assertThat(root.has("tickNumber")).isTrue();
+        assertThat(root.has("index")).isTrue();
+        assertThat(root.has("logId")).isTrue();
+        assertThat(root.has("timestamp")).isTrue();
+    }
+
+    @Test
+    void deserialize_fromJson_failsWhenPrimitivesAreMissing() {
+        String json = """
+                {
+                "type":1,
+                "epoch":2,
+                "tickNumber":3,
+                "index":4,
+                "logId":5
+                }
+                """;
+
+        // missing "timestamp"
+        assertThatThrownBy(() -> mapper.readValue(json, EventLog.class))
+                .isInstanceOf(tools.jackson.databind.exc.MismatchedInputException.class);
     }
 
     @Test

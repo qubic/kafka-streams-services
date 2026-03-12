@@ -1,5 +1,6 @@
 package org.qubic.logs.dedup.model;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -11,26 +12,28 @@ import java.util.Map;
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
+@JsonInclude(JsonInclude.Include.NON_NULL) // omit null values
 public class EventLog {
 
-    private long epoch;
+    private long epoch; // required
 
-    private long tickNumber;
+    private long tickNumber; // required
 
-    private long index;
+    private long index; // required
 
-    private int type;
+    private int type; // required
 
-    private long logId;
+    private long logId; // required
 
-    private String logDigest;
+    private long timestamp; // required
 
     private String transactionHash;
 
-    private long timestamp;
+    private Boolean lastLogForTick; // empty if false
 
-    private long bodySize;
-
+    // we do not assume that the body is always present (unclear if true)
+    private String logDigest; // hash of the event body
+    private Long bodySize;
     private Map<String, Object> body;
 
 }

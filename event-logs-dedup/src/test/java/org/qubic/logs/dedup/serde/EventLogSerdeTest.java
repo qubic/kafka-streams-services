@@ -25,13 +25,32 @@ class EventLogSerdeTest {
         EventLog original = EventLog.builder()
                 .type(1)
                 .epoch(2)
-                .tickNumber(3L)
-                .index(4L)
-                .logId(5L)
+                .tickNumber(3)
+                .index(4)
+                .logId(5)
+                .bodySize(6L)
                 .logDigest("digest")
                 .transactionHash("transactionHash")
-                .timestamp(123456789L)
+                .timestamp(1234567890)
                 .body(body)
+                .lastLogForTick(true)
+                .build();
+
+        byte[] bytes = serde.serializer().serialize("topic", original);
+        assertThat(bytes).isNotNull();
+        EventLog restored = serde.deserializer().deserialize("topic", bytes);
+        assertThat(restored).isEqualTo(original);
+    }
+
+    @Test
+    void serializeAndDeserialize_roundTripOnlyOptional_ok() {
+        EventLog original = EventLog.builder()
+                .type(1)
+                .epoch(2)
+                .tickNumber(3)
+                .index(4)
+                .logId(5)
+                .timestamp(1234567890)
                 .build();
 
         byte[] bytes = serde.serializer().serialize("topic", original);
