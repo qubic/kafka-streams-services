@@ -3,6 +3,7 @@ package org.qubic.logs.dedup.processor;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.Range;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
 import org.apache.kafka.streams.KeyValue;
@@ -17,6 +18,9 @@ import org.springframework.util.Assert;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.StringJoiner;
 
 @Slf4j
@@ -30,6 +34,8 @@ public class DeduplicationProcessor implements Processor<String, EventLog, Strin
     private ProcessorContext<String, EventLog> context;
     private WindowStore<String, String> stateStore;
 
+    private final Map<Long, List<Range<Long>>> ignoredKeys;
+
     private Counter processedCounter;
     private Counter duplicateCounter;
     private Counter uniqueCounter;
@@ -37,10 +43,11 @@ public class DeduplicationProcessor implements Processor<String, EventLog, Strin
 
     private long lastTickNumber = -1;
 
-    public DeduplicationProcessor(String storeName, Duration retention, MeterRegistry meterRegistry) {
+    public DeduplicationProcessor(String storeName, Map<Long, List<Range<Long>>> ignoredKeys, Duration retention, MeterRegistry meterRegistry) {
         this.storeName = storeName;
         this.meterRegistry = meterRegistry;
         this.retention = retention;
+        this.ignoredKeys = Objects.requireNonNullElseGet(ignoredKeys, Map::of);
     }
 
     @Override
@@ -98,7 +105,9 @@ public class DeduplicationProcessor implements Processor<String, EventLog, Strin
         boolean isDuplicate;
         try (WindowStoreIterator<String> iterator = stateStore.fetch(dedupKey, recordKeyTime.minus(retention), Instant.ofEpochMilli(Long.MAX_VALUE))) {
             isDuplicate = iterator.hasNext();
-            validateAgainstStoredDuplicates(iterator, dedupValue, event, dedupKey);
+            boolean ignorePotentialError = ignoredKeys.containsKey(event.getEpoch())
+                    && ignoredKeys.get(event.getEpoch()).stream().anyMatch(range -> range.contains(event.getLogId()));
+            validateAgainstStoredDuplicates(iterator, dedupValue, event, dedupKey, ignorePotentialError);
         }
 
         // Always store the latest occurrence (truncated to a minute for overwriting similar keys within one minute).
@@ -122,7 +131,7 @@ public class DeduplicationProcessor implements Processor<String, EventLog, Strin
         return record;
     }
 
-    private static void validateAgainstStoredDuplicates(WindowStoreIterator<String> iterator, String dedupValue, EventLog event, String dedupKey) {
+    private static void validateAgainstStoredDuplicates(WindowStoreIterator<String> iterator, String dedupValue, EventLog event, String dedupKey, boolean ignore) {
         StringJoiner errors = new StringJoiner(", ");
         while (iterator.hasNext()) {
             KeyValue<Long, String> value = iterator.next();
@@ -132,7 +141,7 @@ public class DeduplicationProcessor implements Processor<String, EventLog, Strin
                 log.error(msg);
             }
         }
-        if (errors.length() > 0) {
+        if (!ignore && errors.length() > 0) {
             throw new IllegalStateException(String.format("Invalid duplicate(s). Key [%s], value [%s], others: [%s].", dedupKey, dedupValue, errors));
         }
     }

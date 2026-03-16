@@ -18,14 +18,14 @@ class DeduplicationProcessorSupplierTest {
 
     @Test
     void get_thenReturnDeduplicationProcessorInstance() {
-        DeduplicationProcessorSupplier supplier = new DeduplicationProcessorSupplier(storeName, retention, meterRegistry);
+        DeduplicationProcessorSupplier supplier = new DeduplicationProcessorSupplier(storeName, null, retention, meterRegistry);
         Processor<String, EventLog, String, EventLog> processor = supplier.get();
         assertThat(processor).isNotNull().isInstanceOf(DeduplicationProcessor.class);
     }
 
     @Test
     void get_multiple_thenCreateNewInstanceEveryCall() {
-        DeduplicationProcessorSupplier supplier = new DeduplicationProcessorSupplier(storeName, retention, meterRegistry);
+        DeduplicationProcessorSupplier supplier = new DeduplicationProcessorSupplier(storeName, null, retention, meterRegistry);
 
         Processor<String, EventLog, String, EventLog> first = supplier.get();
         Processor<String, EventLog, String, EventLog> second = supplier.get();

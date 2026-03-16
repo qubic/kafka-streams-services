@@ -41,7 +41,7 @@ class DeduplicationProcessorTopologyTest {
     void setUp() {
         Topology topology = new Topology();
         topology.addSource("source", Serdes.String().deserializer(), eventLogSerde.deserializer(), "input-topic");
-        topology.addProcessor("processor", () -> new DeduplicationProcessor(storeName, retention, metrics), "source");
+        topology.addProcessor("processor", () -> new DeduplicationProcessor(storeName, null, retention, metrics), "source");
         topology.addStateStore(
                 Stores.windowStoreBuilder(
                         Stores.inMemoryWindowStore(storeName,

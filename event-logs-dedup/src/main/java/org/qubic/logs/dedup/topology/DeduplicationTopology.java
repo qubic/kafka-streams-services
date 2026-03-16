@@ -70,7 +70,7 @@ public class DeduplicationTopology {
 
         // Deduplication
         ProcessorSupplier<String, EventLog, String, EventLog> processorSupplier =
-                new DeduplicationProcessorSupplier(properties.getStoreName(), properties.getRetentionDuration(), meterRegistry);
+                new DeduplicationProcessorSupplier(properties.getStoreName(), properties.getIgnoredLogKeys(), properties.getRetentionDuration(), meterRegistry);
         KStream<String, EventLog> deduplicated = input.process(processorSupplier, properties.getStoreName());
 
         // Output stream

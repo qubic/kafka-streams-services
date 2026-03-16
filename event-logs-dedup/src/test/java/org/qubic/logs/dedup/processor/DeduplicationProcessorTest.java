@@ -2,6 +2,7 @@ package org.qubic.logs.dedup.processor;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import org.apache.commons.lang3.Range;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.processor.api.ProcessorContext;
 import org.apache.kafka.streams.processor.api.Record;
@@ -12,6 +13,9 @@ import org.junit.jupiter.api.Test;
 import org.qubic.logs.dedup.model.EventLog;
 
 import java.time.Duration;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -24,7 +28,8 @@ class DeduplicationProcessorTest {
 
     private final ProcessorContext<String, EventLog> context = mock();
     private final WindowStore<String, String> stateStore = mock();
-    private final DeduplicationProcessor processor = new DeduplicationProcessor("test-store", retention, metrics);
+    private final Map<Long, List<Range<Long>>> ignoredKeys = new HashMap<>();
+    private final DeduplicationProcessor processor = new DeduplicationProcessor("test-store", ignoredKeys, retention, metrics);
 
     @BeforeEach
     void setUp() {
@@ -86,6 +91,46 @@ class DeduplicationProcessorTest {
 
         Record<String, EventLog> result = processor.processRecord(record);
         assertThat(result).isNull();
+    }
+
+    @Test
+    void processRecord_givenInvalidIgnoredDuplicate_thenReturnNull() {
+        EventLog event = EventLog.builder()
+                .epoch(123).logId(4)
+                .tickNumber(567).index(8).type(9).logDigest("digest").build();
+        Record<String, EventLog> record = new Record<>("key", event, 1000L);
+
+        // return erroneous duplicate
+        WindowStoreIterator<String> iterator = mock();
+        when(iterator.hasNext()).thenReturn(true, true, false); // hasNext is called twice
+        when(iterator.next()).thenReturn(KeyValue.pair(666L, "666:1:2:wrong"));
+        when(stateStore.fetch(eq("123:4"), any(), any())).thenReturn(iterator);
+
+        // without ignoring, we would throw
+        ignoredKeys.put(123L, List.of(Range.of(4L, 4L)));
+
+        Record<String, EventLog> result = processor.processRecord(record);
+        assertThat(result).isNull(); // just skip
+    }
+
+    @Test
+    void processRecord_givenInvalidIgnoredDuplicateWithinRange_thenReturnNull() {
+        EventLog event = EventLog.builder()
+                .epoch(123).logId(456)
+                .tickNumber(789).index(8).type(9).logDigest("digest").build();
+        Record<String, EventLog> record = new Record<>("key", event, 1000L);
+
+        // return erroneous duplicate
+        WindowStoreIterator<String> iterator = mock();
+        when(iterator.hasNext()).thenReturn(true, true, false); // hasNext is called twice
+        when(iterator.next()).thenReturn(KeyValue.pair(666L, "666:1:2:wrong"));
+        when(stateStore.fetch(eq("123:456"), any(), any())).thenReturn(iterator);
+
+        // without ignoring, we would throw
+        ignoredKeys.put(123L, List.of(Range.of(1L, 10L), Range.of(500L, 400L), Range.of(410L, 414L)));
+
+        Record<String, EventLog> result = processor.processRecord(record);
+        assertThat(result).isNull(); // just skip
     }
 
     @Test
