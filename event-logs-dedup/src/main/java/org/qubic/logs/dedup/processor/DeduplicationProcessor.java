@@ -48,6 +48,9 @@ public class DeduplicationProcessor implements Processor<String, EventLog, Strin
         this.meterRegistry = meterRegistry;
         this.retention = retention;
         this.ignoredKeys = Objects.requireNonNullElseGet(ignoredKeys, Map::of);
+        if (!this.ignoredKeys.isEmpty()) {
+            log.info("Ignored key ranges: {}.", ignoredKeys);
+        }
     }
 
     @Override
