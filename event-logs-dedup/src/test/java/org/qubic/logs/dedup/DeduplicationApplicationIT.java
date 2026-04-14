@@ -27,6 +27,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 )
 @TestPropertySource(properties = {
         "streams.bootstrap-servers=${spring.embedded.kafka.brokers}",
+        "streams.replication-factor=-1",
         "dedup.input-topic=log-in",
         "dedup.output-topic=log-out",
         "streams.state-dir=/tmp/${random.uuid}"
