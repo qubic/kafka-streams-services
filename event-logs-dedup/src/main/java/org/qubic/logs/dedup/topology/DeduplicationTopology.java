@@ -57,8 +57,8 @@ public class DeduplicationTopology {
         if (properties.isChangeLogEnabled()) {
             log.info("Changelog is enabled.");
             // Changelog for fault tolerance. Creates a kafka changelog topic.
-            // Input: optional topic configuration.
-            dedupStoreBuilder.withLoggingEnabled(new HashMap<>()); // is default
+            // Uses default configuration from Kafka Streams properties (e.g. replication.factor).
+            dedupStoreBuilder.withLoggingEnabled(new HashMap<>());
         } else {
             log.warn("Changelog is disabled. This is not recommended for production use.");
             dedupStoreBuilder.withLoggingDisabled();

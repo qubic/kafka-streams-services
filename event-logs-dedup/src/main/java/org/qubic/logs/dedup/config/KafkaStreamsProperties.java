@@ -23,6 +23,7 @@ public class KafkaStreamsProperties {
     private String defaultKeySerde;
     private String defaultValueSerde;
     private String topologyOptimization;
+    private Integer replicationFactor;
 
     /**
      * Map properties to a Kafka Streams configuration map.
@@ -37,6 +38,7 @@ public class KafkaStreamsProperties {
         if (cacheMaxBytesBuffering != null) props.put(STATESTORE_CACHE_MAX_BYTES_CONFIG, cacheMaxBytesBuffering);
         if (numStreamThreads != null) props.put(NUM_STREAM_THREADS_CONFIG, numStreamThreads);
         if (topologyOptimization != null) props.put(TOPOLOGY_OPTIMIZATION_CONFIG, topologyOptimization);
+        if (replicationFactor != null) props.put(REPLICATION_FACTOR_CONFIG, replicationFactor);
         return props;
     }
 }
