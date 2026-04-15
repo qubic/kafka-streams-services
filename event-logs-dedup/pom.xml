@@ -15,7 +15,7 @@
     <artifactId>event-logs-dedup</artifactId>
     <packaging>jar</packaging>
 
-    <name>Event Deduplication Service</name>
+    <name>Event Logs Deduplication Service</name>
     <description>Kafka Streams deduplication service with Spring Boot</description>
 
     <dependencies>
