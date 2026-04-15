@@ -19,7 +19,7 @@ class TickTransactionsJsonTest {
             .build();
 
     @Test
-    void serialize_toJson_containsAllFields() throws Exception {
+    void serialize_toJson_containsAllFields() {
         Transaction tx = Transaction.builder()
                 .hash("tx-hash")
                 .source("source-addr")
@@ -49,21 +49,21 @@ class TickTransactionsJsonTest {
         assertThat(root.get("transactions").size()).isEqualTo(1);
 
         JsonNode txNode = root.get("transactions").get(0);
-        assertThat(txNode.get("hash").asText()).isEqualTo("tx-hash");
-        assertThat(txNode.get("source").asText()).isEqualTo("source-addr");
-        assertThat(txNode.get("destination").asText()).isEqualTo("dest-addr");
+        assertThat(txNode.get("hash").asString()).isEqualTo("tx-hash");
+        assertThat(txNode.get("source").asString()).isEqualTo("source-addr");
+        assertThat(txNode.get("destination").asString()).isEqualTo("dest-addr");
         assertThat(txNode.get("amount").asLong()).isEqualTo(1000L);
         assertThat(txNode.get("tickNumber").asLong()).isEqualTo(49189280L);
         assertThat(txNode.get("inputType").asInt()).isEqualTo(1);
         assertThat(txNode.get("inputSize").asInt()).isEqualTo(10);
-        assertThat(txNode.get("inputData").asText()).isEqualTo("data");
-        assertThat(txNode.get("signature").asText()).isEqualTo("sig");
+        assertThat(txNode.get("inputData").asString()).isEqualTo("data");
+        assertThat(txNode.get("signature").asString()).isEqualTo("sig");
         assertThat(txNode.get("timestamp").asLong()).isEqualTo(1775990260000L);
         assertThat(txNode.get("moneyFlew").asBoolean()).isTrue();
     }
 
     @Test
-    void deserialize_fromJson_populatesModel() throws Exception {
+    void deserialize_fromJson_populatesModel() {
         String json = """
                 {
                   "epoch": 208,
@@ -92,7 +92,7 @@ class TickTransactionsJsonTest {
         assertThat(parsed.getTickNumber()).isEqualTo(49189280L);
         assertThat(parsed.getTransactions()).hasSize(1);
 
-        Transaction tx = parsed.getTransactions().get(0);
+        Transaction tx = parsed.getTransactions().getFirst();
         assertThat(tx.getHash()).isEqualTo("tx-hash");
         assertThat(tx.getAmount()).isEqualTo(1000L);
         assertThat(tx.isMoneyFlew()).isTrue();
