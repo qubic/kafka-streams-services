@@ -20,8 +20,6 @@ public class KafkaStreamsProperties {
     private Long commitIntervalMs;
     private Long cacheMaxBytesBuffering;
     private Integer numStreamThreads;
-    private String defaultKeySerde;
-    private String defaultValueSerde;
     private String topologyOptimization;
     private Integer replicationFactor;
 
