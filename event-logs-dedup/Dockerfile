@@ -14,7 +14,6 @@ RUN addgroup -g ${APP_GID} -S appgroup \
 
 WORKDIR /app
 
-# Copy the built application JAR from the module's target directory
 # Use a wildcard to avoid hardcoding the version
 COPY target/event-logs-dedup-*.jar app.jar
 
@@ -25,7 +24,7 @@ RUN mkdir -p /var/kafka-streams && \
 USER appuser
 
 # JVM options
-ENV JAVA_OPTS="-Xms2g -Xmx4g -XX:+UseG1GC -XX:MaxGCPauseMillis=200"
+ENV JAVA_OPTS="-Xms1g -Xmx2g"
 
 # Health check
 HEALTHCHECK --interval=5s --timeout=3s --start-period=30s --retries=3 \

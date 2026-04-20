@@ -1,4 +1,4 @@
-name: Build and push event-logs-dedup image to GHCR
+name: Push event-logs-dedup to image repository
 
 permissions:
   contents: read
