@@ -1,7 +1,7 @@
 services:
   event-logs-dedup:
-    image: ghcr.io/qubic/tick-data-dedup:${DEDUP_VERSION}
-    # image: sha256:ec1b91d7ebe36d399376ee21d5663f762f1aaf81279bdd216054b4e38f1a4994
+#    image: ghcr.io/qubic/tick-data-dedup:${DEDUP_VERSION}
+    image: sha256:5830ee2532d0700e9d49ea8f41e783ec78bc3aafcb5f6d43e9cdc43540c402fa
     container_name: tick-data-dedup
     user: 1000:1000
     environment:
@@ -11,8 +11,6 @@ services:
       - DEDUP_OUTPUT_TOPIC=qubic-tick-data-local
       - DEDUP_RETENTION_DURATION=1d
     network_mode: host
-    ports:
-      - "8080:8080"
     volumes:
       - ./data:/var/kafka-streams
     restart: no
