@@ -14,4 +14,7 @@ services:
       - "8080:8080"
     volumes:
       - ./data:/var/kafka-streams
+    healthcheck:
+      test: [ "CMD", "wget", "--no-verbose", "--spider", "--tries=1", "http://localhost:8080/health" ]
+      timeout: 3s
     restart: no

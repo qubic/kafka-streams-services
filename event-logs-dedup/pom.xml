@@ -64,7 +64,7 @@
             <artifactId>jackson-databind</artifactId>
         </dependency>
 
-        <!-- Lombok (optional, for cleaner code) -->
+        <!-- Lombok -->
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
