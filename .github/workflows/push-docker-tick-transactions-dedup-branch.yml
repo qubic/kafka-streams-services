@@ -1,4 +1,4 @@
-name: Push tick-data-dedup branch to image repository
+name: Push tick-transactions-dedup branch to image repository
 
 permissions:
   contents: read
@@ -24,7 +24,7 @@ jobs:
           cache: maven
 
       - name: Build module (skip tests)
-        run: mvn -B -pl tick-data-dedup -am -DskipTests package
+        run: mvn -B -pl tick-transactions-dedup -am -DskipTests package
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
@@ -40,8 +40,8 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          context: ./tick-data-dedup
-          file: ./tick-data-dedup/Dockerfile
+          context: ./tick-transactions-dedup
+          file: ./tick-transactions-dedup/Dockerfile
           push: true
-          tags: ghcr.io/qubic/tick-data-dedup:${{ env.RELEASE_VERSION }}
+          tags: ghcr.io/qubic/tick-transactions-dedup:${{ env.RELEASE_VERSION }}
 

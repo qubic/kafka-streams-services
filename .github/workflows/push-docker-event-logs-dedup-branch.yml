@@ -1,4 +1,4 @@
-name: Push event-logs-dedup to image repository
+name: Push event-logs-dedup branch to image repository
 
 permissions:
   contents: read
