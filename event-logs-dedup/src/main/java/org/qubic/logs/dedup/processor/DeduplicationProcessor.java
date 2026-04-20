@@ -59,19 +59,23 @@ public class DeduplicationProcessor implements Processor<String, EventLog, Strin
         this.stateStore = context.getStateStore(storeName);
 
         // Initialize metrics
-        this.processedCounter = Counter.builder("dedup.events.processed")
-                .description("Total events processed")
+        this.processedCounter = Counter.builder("dedup.messages.processed")
+                .tag("type", "event-logs")
+                .description("Total messages processed")
                 .register(meterRegistry);
 
-        this.duplicateCounter = Counter.builder("dedup.events.duplicate")
-                .description("Duplicate events filtered")
+        this.duplicateCounter = Counter.builder("dedup.messages.duplicate")
+                .tag("type", "event-logs")
+                .description("Duplicate messages filtered")
                 .register(meterRegistry);
 
-        this.uniqueCounter = Counter.builder("dedup.events.unique")
-                .description("Unique events forwarded")
+        this.uniqueCounter = Counter.builder("dedup.messages.unique")
+                .tag("type", "event-logs")
+                .description("Unique messages forwarded")
                 .register(meterRegistry);
 
         this.tickCounter = Counter.builder("dedup.ticks.processed")
+                .tag("type", "event-logs")
                 .description("Total ticks processed")
                 .register(meterRegistry);
 
@@ -104,7 +108,7 @@ public class DeduplicationProcessor implements Processor<String, EventLog, Strin
         // Truncate timestamp to one-minute granularity to enable overwriting within the same minute
         Instant recordKeyTime = recordTime.truncatedTo(ChronoUnit.MINUTES);
 
-        // Check if this key exists in the store (use explicit retention time to allow testing, we could also rely on the stores expiry policy)
+        // Check if this key exists in the store (use explicit retention time to allow testing, we could also rely on the store expiry policy)
         boolean isDuplicate;
         try (WindowStoreIterator<String> iterator = stateStore.fetch(dedupKey, recordKeyTime.minus(retention), Instant.ofEpochMilli(Long.MAX_VALUE))) {
             isDuplicate = iterator.hasNext();

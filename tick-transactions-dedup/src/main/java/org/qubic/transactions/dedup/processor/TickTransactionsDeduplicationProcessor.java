@@ -30,6 +30,7 @@ public class TickTransactionsDeduplicationProcessor implements Processor<String,
     private Counter processedCounter;
     private Counter duplicateCounter;
     private Counter uniqueCounter;
+    private Counter tickCounter;
 
     public TickTransactionsDeduplicationProcessor(String storeName, Duration retention, MeterRegistry meterRegistry) {
         this.storeName = storeName;
@@ -42,16 +43,24 @@ public class TickTransactionsDeduplicationProcessor implements Processor<String,
         this.context = context;
         this.stateStore = context.getStateStore(storeName);
 
-        this.processedCounter = Counter.builder("dedup.transactions.processed")
-                .description("Total tick transactions messages processed")
+        this.processedCounter = Counter.builder("dedup.messages.processed")
+                .tag("type", "tick-transactions")
+                .description("Total messages processed")
                 .register(meterRegistry);
 
-        this.duplicateCounter = Counter.builder("dedup.transactions.duplicate")
-                .description("Duplicate tick transactions messages filtered")
+        this.duplicateCounter = Counter.builder("dedup.messages.duplicate")
+                .tag("type", "tick-transactions")
+                .description("Duplicate messages filtered")
                 .register(meterRegistry);
 
-        this.uniqueCounter = Counter.builder("dedup.transactions.unique")
-                .description("Unique tick transactions messages forwarded")
+        this.uniqueCounter = Counter.builder("dedup.messages.unique")
+                .tag("type", "tick-transactions")
+                .description("Unique messages forwarded")
+                .register(meterRegistry);
+
+        this.tickCounter = Counter.builder("dedup.ticks.processed")
+                .tag("type", "tick-transactions")
+                .description("Total ticks processed")
                 .register(meterRegistry);
 
         log.info("TickTransactionsDeduplicationProcessor initialized for store: [{}].", storeName);
@@ -60,6 +69,7 @@ public class TickTransactionsDeduplicationProcessor implements Processor<String,
     @Override
     public void process(Record<String, TickTransactions> record) {
         processedCounter.increment();
+        tickCounter.increment();
 
         TickTransactions tickTransactions = record.value();
         Assert.notNull(tickTransactions, "Received null tick transactions.");

@@ -110,9 +110,9 @@ class DeduplicationProcessorTopologyTest {
         assertThat(outputTopic.readValuesToList()).hasSize(1);
 
         // Verify metrics
-        assertThat(metrics.get("dedup.events.processed").counter().count()).isEqualTo(2.0);
-        assertThat(metrics.get("dedup.events.duplicate").counter().count()).isEqualTo(1.0);
-        assertThat(metrics.get("dedup.events.unique").counter().count()).isEqualTo(1.0);
+        assertThat(metrics.get("dedup.messages.processed").counter().count()).isEqualTo(2.0);
+        assertThat(metrics.get("dedup.messages.duplicate").counter().count()).isEqualTo(1.0);
+        assertThat(metrics.get("dedup.messages.unique").counter().count()).isEqualTo(1.0);
     }
 
     @Test
@@ -138,9 +138,9 @@ class DeduplicationProcessorTopologyTest {
         assertThat(forwardedLogs).hasSize(2);
         assertThat(forwardedLogs).containsExactly(event1, event3);
         // Verify metrics
-        assertThat(metrics.get("dedup.events.processed").counter().count()).isEqualTo(3.0);
-        assertThat(metrics.get("dedup.events.duplicate").counter().count()).isEqualTo(1.0);
-        assertThat(metrics.get("dedup.events.unique").counter().count()).isEqualTo(2.0);
+        assertThat(metrics.get("dedup.messages.processed").counter().count()).isEqualTo(3.0);
+        assertThat(metrics.get("dedup.messages.duplicate").counter().count()).isEqualTo(1.0);
+        assertThat(metrics.get("dedup.messages.unique").counter().count()).isEqualTo(2.0);
     }
 
 }

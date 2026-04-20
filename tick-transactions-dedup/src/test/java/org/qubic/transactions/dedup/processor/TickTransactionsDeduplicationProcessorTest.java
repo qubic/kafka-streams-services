@@ -17,7 +17,6 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 class TickTransactionsDeduplicationProcessorTest {
@@ -52,7 +51,7 @@ class TickTransactionsDeduplicationProcessorTest {
 
         verify(context).forward(record);
         verify(stateStore).put(eq("49189280"), eq(1L), anyLong());
-        assertThat(metrics.get("dedup.transactions.unique").counter().count()).isEqualTo(1.0);
+        assertThat(metrics.get("dedup.messages.unique").counter().count()).isEqualTo(1.0);
     }
 
     @Test
@@ -73,7 +72,7 @@ class TickTransactionsDeduplicationProcessorTest {
 
         verify(context, never()).forward(any());
         verify(stateStore).put(eq("49189280"), eq(2L), anyLong());
-        assertThat(metrics.get("dedup.transactions.duplicate").counter().count()).isEqualTo(1.0);
+        assertThat(metrics.get("dedup.messages.duplicate").counter().count()).isEqualTo(1.0);
     }
 
     @Test

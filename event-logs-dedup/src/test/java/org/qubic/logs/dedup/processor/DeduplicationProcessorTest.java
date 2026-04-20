@@ -49,7 +49,7 @@ class DeduplicationProcessorTest {
 
         verify(context).forward(record);
         verify(stateStore).put(eq("123:2"), eq("100:1:3:digest"), anyLong());
-        assertThat(metrics.get("dedup.events.unique").counter().count()).isEqualTo(1.0);
+        assertThat(metrics.get("dedup.messages.unique").counter().count()).isEqualTo(1.0);
     }
 
     @Test
@@ -65,7 +65,7 @@ class DeduplicationProcessorTest {
 
         verify(context, never()).forward(any());
         verify(stateStore).put(eq("123:2"), eq("100:1:3:digest"), anyLong());
-        assertThat(metrics.get("dedup.events.duplicate").counter().count()).isEqualTo(1.0);
+        assertThat(metrics.get("dedup.messages.duplicate").counter().count()).isEqualTo(1.0);
     }
 
     @Test

@@ -30,6 +30,7 @@ public class TickDataDeduplicationProcessor implements Processor<String, TickDat
     private Counter processedCounter;
     private Counter duplicateCounter;
     private Counter uniqueCounter;
+    private Counter tickCounter;
 
     public TickDataDeduplicationProcessor(String storeName, Duration retention, MeterRegistry meterRegistry) {
         this.storeName = storeName;
@@ -42,16 +43,24 @@ public class TickDataDeduplicationProcessor implements Processor<String, TickDat
         this.context = context;
         this.stateStore = context.getStateStore(storeName);
 
-        this.processedCounter = Counter.builder("dedup.tickdata.processed")
-                .description("Total tick data messages processed")
+        this.processedCounter = Counter.builder("dedup.messages.processed")
+                .tag("type", "tick-data")
+                .description("Total messages processed")
                 .register(meterRegistry);
 
-        this.duplicateCounter = Counter.builder("dedup.tickdata.duplicate")
-                .description("Duplicate tick data messages filtered")
+        this.duplicateCounter = Counter.builder("dedup.messages.duplicate")
+                .tag("type", "tick-data")
+                .description("Duplicate messages filtered")
                 .register(meterRegistry);
 
-        this.uniqueCounter = Counter.builder("dedup.tickdata.unique")
-                .description("Unique tick data messages forwarded")
+        this.uniqueCounter = Counter.builder("dedup.messages.unique")
+                .tag("type", "tick-data")
+                .description("Unique messages forwarded")
+                .register(meterRegistry);
+
+        this.tickCounter = Counter.builder("dedup.ticks.processed")
+                .tag("type", "tick-data")
+                .description("Total ticks processed")
                 .register(meterRegistry);
 
         log.info("TickDataDeduplicationProcessor initialized for store: [{}].", storeName);
@@ -60,6 +69,7 @@ public class TickDataDeduplicationProcessor implements Processor<String, TickDat
     @Override
     public void process(Record<String, TickData> record) {
         processedCounter.increment();
+        tickCounter.increment();
 
         TickData tickData = record.value();
         Assert.notNull(tickData, "Received null tick data.");
