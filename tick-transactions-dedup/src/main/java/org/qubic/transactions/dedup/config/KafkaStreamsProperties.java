@@ -1,6 +1,8 @@
 package org.qubic.transactions.dedup.config;
 
 import lombok.Data;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.streams.StreamsConfig;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.util.HashMap;
@@ -22,6 +24,7 @@ public class KafkaStreamsProperties {
     private Integer numStreamThreads;
     private String topologyOptimization;
     private Integer replicationFactor;
+    private Integer maxRequestSizeInMb;
 
     public Map<String, Object> asProperties() {
         Map<String, Object> props = new HashMap<>();
@@ -34,6 +37,8 @@ public class KafkaStreamsProperties {
         if (numStreamThreads != null) props.put(NUM_STREAM_THREADS_CONFIG, numStreamThreads);
         if (topologyOptimization != null) props.put(TOPOLOGY_OPTIMIZATION_CONFIG, topologyOptimization);
         if (replicationFactor != null) props.put(REPLICATION_FACTOR_CONFIG, replicationFactor);
+        if (maxRequestSizeInMb != null) props.put(StreamsConfig.producerPrefix(ProducerConfig.MAX_REQUEST_SIZE_CONFIG),
+                maxRequestSizeInMb * 1024 * 1024);
         return props;
     }
 }
