@@ -8,7 +8,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>4.0.3</version>
+        <version>4.0.5</version>
         <relativePath/>
     </parent>
 
@@ -19,11 +19,14 @@
 
     <modules>
         <module>event-logs-dedup</module>
+        <module>tick-transactions-dedup</module>
+        <module>tick-data-dedup</module>
     </modules>
 
     <properties>
         <java.version>21</java.version>
 
+        <commons-collections4.version>[4.5.0,)</commons-collections4.version>
         <commons-lang3.version>[3.20.0,)</commons-lang3.version>
     </properties>
 

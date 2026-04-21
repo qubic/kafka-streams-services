@@ -12,11 +12,11 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <artifactId>event-logs-dedup</artifactId>
+    <artifactId>tick-data-dedup</artifactId>
     <packaging>jar</packaging>
 
-    <name>Event Logs Deduplication Service</name>
-    <description>Kafka Streams deduplication service with Spring Boot</description>
+    <name>Tick Data Deduplication Service</name>
+    <description>Kafka Streams deduplication service for Tick Data with Spring Boot</description>
 
     <dependencies>
         <!-- Spring Boot Starters -->

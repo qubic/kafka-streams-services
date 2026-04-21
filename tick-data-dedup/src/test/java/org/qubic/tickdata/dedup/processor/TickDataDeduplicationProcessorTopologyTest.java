@@ -1,4 +1,4 @@
-package org.qubic.logs.dedup.processor;
+package org.qubic.tickdata.dedup.processor;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
@@ -13,35 +13,34 @@ import org.apache.kafka.streams.state.WindowStoreIterator;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.qubic.logs.dedup.model.EventLog;
-import org.qubic.logs.dedup.serde.EventLogSerde;
+import org.qubic.tickdata.dedup.model.TickData;
+import org.qubic.tickdata.dedup.serde.TickDataSerde;
 import tools.jackson.databind.ObjectMapper;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.List;
 import java.util.Properties;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SuppressWarnings("resource")
-class DeduplicationProcessorTopologyTest {
+class TickDataDeduplicationProcessorTopologyTest {
 
     private final MeterRegistry metrics = new SimpleMeterRegistry();
     private final String storeName = "test-store";
-    private final EventLogSerde eventLogSerde = new EventLogSerde(new ObjectMapper());
+    private final TickDataSerde tickDataSerde = new TickDataSerde(new ObjectMapper());
     private final Duration retention = Duration.ofMinutes(5);
 
     private TopologyTestDriver testDriver;
-    private TestInputTopic<String, EventLog> inputTopic;
-    private TestOutputTopic<String, EventLog> outputTopic;
+    private TestInputTopic<String, TickData> inputTopic;
+    private TestOutputTopic<String, TickData> outputTopic;
     private WindowStore<String, String> stateStore;
 
     @BeforeEach
     void setUp() {
         Topology topology = new Topology();
-        topology.addSource("source", Serdes.String().deserializer(), eventLogSerde.deserializer(), "input-topic");
-        topology.addProcessor("processor", () -> new DeduplicationProcessor(storeName, null, retention, metrics), "source");
+        topology.addSource("source", Serdes.String().deserializer(), tickDataSerde.deserializer(), "input-topic");
+        topology.addProcessor("processor", () -> new TickDataDeduplicationProcessor(storeName, retention, metrics), "source");
         topology.addStateStore(
                 Stores.windowStoreBuilder(
                         Stores.inMemoryWindowStore(storeName,
@@ -53,15 +52,15 @@ class DeduplicationProcessorTopologyTest {
                 ),
                 "processor"
         );
-        topology.addSink("sink", "output-topic", Serdes.String().serializer(), eventLogSerde.serializer(), "processor");
+        topology.addSink("sink", "output-topic", Serdes.String().serializer(), tickDataSerde.serializer(), "processor");
 
         Properties props = new Properties();
         props.setProperty("application.id", "test-app");
         props.setProperty("bootstrap.servers", "dummy:1234");
 
         testDriver = new TopologyTestDriver(topology, props);
-        inputTopic = testDriver.createInputTopic("input-topic", Serdes.String().serializer(), eventLogSerde.serializer());
-        outputTopic = testDriver.createOutputTopic("output-topic", Serdes.String().deserializer(), eventLogSerde.deserializer());
+        inputTopic = testDriver.createInputTopic("input-topic", Serdes.String().serializer(), tickDataSerde.serializer());
+        outputTopic = testDriver.createOutputTopic("output-topic", Serdes.String().deserializer(), tickDataSerde.deserializer());
         stateStore = testDriver.getWindowStore(storeName);
     }
 
@@ -74,13 +73,10 @@ class DeduplicationProcessorTopologyTest {
 
     @Test
     void shouldForwardNewRecord() {
-        EventLog event = EventLog.builder()
-                .epoch(123)
-                .tickNumber(1)
-                .index(2)
-                .type(3)
-                .logId(4)
-                .logDigest("digest-1")
+        TickData event = TickData.builder()
+                .epoch(209L)
+                .tickNumber(49485485L)
+                .signature("sig1")
                 .build();
 
         Instant timestamp = Instant.now();
@@ -89,24 +85,23 @@ class DeduplicationProcessorTopologyTest {
         assertThat(outputTopic.readValuesToList()).containsExactly(event);
 
         // Verify state store
-        String dedupKey = event.getEpoch() + ":" + event.getLogId();
-        WindowStoreIterator<String> iterator = stateStore.fetch(dedupKey, Instant.EPOCH, Instant.now());
+        WindowStoreIterator<String> iterator = stateStore.fetch("49485485", Instant.EPOCH, Instant.now());
         assertThat(iterator).hasNext();
-        assertThat(iterator.next().value).isEqualTo(event.getTickNumber() + ":" + event.getIndex() + ":" + event.getType() + ":" + event.getLogDigest());
-
+        assertThat(iterator.next().value).isEqualTo("sig1");
     }
 
     @Test
     void shouldNotForwardDuplicateRecord() {
-        EventLog event = EventLog.builder()
-                .tickNumber(42)
-                .index(101)
-                .logDigest("digest-1")
+        TickData event = TickData.builder()
+                .epoch(209L)
+                .tickNumber(49485485L)
+                .signature("sig1")
                 .build();
 
         Instant timestamp = Instant.now();
-        inputTopic.pipeInput("key", event, Instant.now());
+        inputTopic.pipeInput("key", event, timestamp);
         inputTopic.pipeInput("key", event, timestamp.plusMillis(50)); // duplicate within retention
+        
         assertThat(outputTopic.readValuesToList()).hasSize(1);
 
         // Verify metrics
@@ -116,31 +111,20 @@ class DeduplicationProcessorTopologyTest {
     }
 
     @Test
-    void shouldForwardOneDuplicateOutsideRetentionPeriod() {
-        EventLog event1 = EventLog.builder()
-                .index(101)
+    void shouldForwardDuplicateOutsideRetentionPeriod() {
+        TickData event = TickData.builder()
+                .epoch(209L)
+                .tickNumber(49485485L)
+                .signature("sig1")
                 .build();
 
-        EventLog event2 = EventLog.builder()
-                .index(101)
-                .build();
-
-        EventLog event3 = EventLog.builder()
-                .index(101)
-                .build();
-
-        inputTopic.pipeInput("key", event1);
+        inputTopic.pipeInput("key", event);
         inputTopic.advanceTime(Duration.ofSeconds(1));
-        inputTopic.pipeInput("key", event2); // duplicate within retention
-        inputTopic.advanceTime(retention.plusMinutes(1)); // we truncate to minute per default
-        inputTopic.pipeInput("key", event3); // duplicate outside retention
-        List<EventLog> forwardedLogs = outputTopic.readValuesToList();
-        assertThat(forwardedLogs).hasSize(2);
-        assertThat(forwardedLogs).containsExactly(event1, event3);
-        // Verify metrics
-        assertThat(metrics.get("dedup.messages.processed").counter().count()).isEqualTo(3.0);
-        assertThat(metrics.get("dedup.messages.duplicate").counter().count()).isEqualTo(1.0);
-        assertThat(metrics.get("dedup.messages.unique").counter().count()).isEqualTo(2.0);
+        inputTopic.pipeInput("key", event); // duplicate within retention
+        
+        inputTopic.advanceTime(retention.plusMinutes(1)); // outside retention
+        inputTopic.pipeInput("key", event); // should be forwarded
+        
+        assertThat(outputTopic.readValuesToList()).hasSize(2);
     }
-
 }

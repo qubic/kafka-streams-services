@@ -1,4 +1,4 @@
-package org.qubic.logs.dedup.config;
+package org.qubic.tickdata.dedup.config;
 
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -23,9 +23,6 @@ public class KafkaStreamsProperties {
     private String topologyOptimization;
     private Integer replicationFactor;
 
-    /**
-     * Map properties to a Kafka Streams configuration map.
-     */
     public Map<String, Object> asProperties() {
         Map<String, Object> props = new HashMap<>();
         if (bootstrapServers != null && !bootstrapServers.isEmpty()) props.put(BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);

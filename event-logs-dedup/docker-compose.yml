@@ -1,10 +1,6 @@
 services:
   event-logs-dedup:
     image: ghcr.io/qubic/event-logs-dedup:${DEDUP_VERSION}
-#    image: sha256:a0b9fc1c2fed5ac8ddff15bc9fafa304f4a0a1b3897f435b53e62a3bae11932f
-#    build:
-#      context: .
-#      dockerfile: Dockerfile
     container_name: event-logs-dedup
     user: 1000:1000
     environment:
@@ -12,10 +8,8 @@ services:
       - STREAMS_STATE_DIR=/var/kafka-streams
       - DEDUP_INPUT_TOPIC=qubic-event-logs-incoming-local
       - DEDUP_OUTPUT_TOPIC=qubic-event-logs-unique-local
-      - DEDUP_RETENTION_DURATION=7d
+      - DEDUP_RETENTION_DURATION=3d
     network_mode: host
-    ports:
-      - "8080:8080"
     volumes:
       - ./data:/var/kafka-streams
     restart: no

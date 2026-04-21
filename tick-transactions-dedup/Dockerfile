@@ -1,7 +1,7 @@
 FROM eclipse-temurin:21-jre-alpine
 
 LABEL maintainer="mio@qubic.org"
-LABEL description="Event Log Deduplication Service"
+LABEL description="Tick Transactions Deduplication Service"
 
 # needed for rocksdb
 RUN apk add --no-cache libstdc++
@@ -15,7 +15,7 @@ RUN addgroup -g ${APP_GID} -S appgroup \
 WORKDIR /app
 
 # Use a wildcard to avoid hardcoding the version
-COPY target/event-logs-dedup-*.jar app.jar
+COPY target/tick-transactions-dedup-*.jar app.jar
 
 # Create state directory
 RUN mkdir -p /var/kafka-streams && \
