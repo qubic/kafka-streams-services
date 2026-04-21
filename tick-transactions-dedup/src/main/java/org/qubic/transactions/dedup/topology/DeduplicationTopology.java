@@ -51,8 +51,13 @@ public class DeduplicationTopology {
                                 ),
                                 Serdes.String(),
                                 Serdes.Long()
-                        )
-                        .withCachingEnabled();
+                        );
+
+        if (properties.isCachingEnabled()) {
+            dedupStoreBuilder.withCachingEnabled();
+        } else {
+            dedupStoreBuilder.withCachingDisabled();
+        }
 
         if (properties.isChangeLogEnabled()) {
             log.info("Changelog is enabled.");

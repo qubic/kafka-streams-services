@@ -14,5 +14,6 @@ public class DeduplicationProperties {
     private Duration retentionDuration;
     private String storeName;
     private boolean changeLogEnabled;
+    private boolean cachingEnabled;
 
 }
