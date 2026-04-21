@@ -24,6 +24,6 @@ RUN mkdir -p /var/kafka-streams && \
 USER appuser
 
 # JVM options
-ENV JAVA_OPTS="-Xms2g -Xmx4g"
+ENV JAVA_OPTS="-Xms2g -Xmx4g -XX:+UseG1GC -XX:MaxGCPauseMillis=200"
 
 ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
