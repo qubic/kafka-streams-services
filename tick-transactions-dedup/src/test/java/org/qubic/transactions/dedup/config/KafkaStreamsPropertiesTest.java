@@ -14,7 +14,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest(classes = KafkaStreamsPropertiesTest.TestConfig.class)
 @TestPropertySource(properties = {
         "streams.replication-factor=3",
-        "streams.application-id=test-app"
+        "streams.application-id=test-app",
+        "streams.max-request-size-in-mb=5"
 })
 public class KafkaStreamsPropertiesTest {
 
@@ -22,12 +23,14 @@ public class KafkaStreamsPropertiesTest {
     private KafkaStreamsProperties properties;
 
     @Test
-    void shouldPopulateReplicationFactor() {
+    void shouldPopulateProperties() {
         assertThat(properties.getReplicationFactor()).isEqualTo(3);
+        assertThat(properties.getMaxRequestSizeInMb()).isEqualTo(5);
         
         Map<String, Object> props = properties.asProperties();
         assertThat(props).containsEntry(REPLICATION_FACTOR_CONFIG, 3);
         assertThat(props).containsEntry("application.id", "test-app");
+        assertThat(props).containsEntry("producer.max.request.size", 5 * 1024 * 1024);
     }
 
     @EnableConfigurationProperties(KafkaStreamsProperties.class)
