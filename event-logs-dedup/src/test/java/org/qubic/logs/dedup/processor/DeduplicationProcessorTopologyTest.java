@@ -30,7 +30,8 @@ class DeduplicationProcessorTopologyTest {
     private final MeterRegistry metrics = new SimpleMeterRegistry();
     private final String storeName = "test-store";
     private final EventLogSerde eventLogSerde = new EventLogSerde(new ObjectMapper());
-    private final Duration retention = Duration.ofMinutes(5);
+    private final Duration retention = Duration.ofMinutes(100);
+    private final Duration window = Duration.ofMinutes(10);
 
     private TopologyTestDriver testDriver;
     private TestInputTopic<String, EventLog> inputTopic;
@@ -46,7 +47,7 @@ class DeduplicationProcessorTopologyTest {
                 Stores.windowStoreBuilder(
                         Stores.inMemoryWindowStore(storeName,
                                 retention,
-                                retention,
+                                window,
                                 false),
                         Serdes.String(),
                         Serdes.String()
@@ -141,6 +142,43 @@ class DeduplicationProcessorTopologyTest {
         assertThat(metrics.get("dedup.messages.processed").counter().count()).isEqualTo(3.0);
         assertThat(metrics.get("dedup.messages.duplicate").counter().count()).isEqualTo(1.0);
         assertThat(metrics.get("dedup.messages.unique").counter().count()).isEqualTo(2.0);
+    }
+
+    @Test
+    void shouldFindDuplicatesAtVariousPointsOfRetentionPeriod() {
+        // Use a fixed base time truncated to minutes for predictability
+        Instant baseTime = Instant.parse("2026-04-22T10:00:00Z");
+
+        // 1. Store records at different points in time
+        EventLog event1 = EventLog.builder().epoch(1).logId(1).build();
+        inputTopic.pipeInput("key1", event1, baseTime);
+
+        EventLog event2 = EventLog.builder().epoch(1).logId(2).build();
+        inputTopic.pipeInput("key2", event2, baseTime.plus(retention.dividedBy(2)));
+
+        EventLog event3 = EventLog.builder().epoch(1).logId(3).build();
+        inputTopic.pipeInput("key3", event3, baseTime.plus(retention).minusSeconds(1));
+
+        assertThat(outputTopic.readValuesToList()).hasSize(3);
+
+        // 2. At a later time, verify all are found as duplicates
+        // We use baseTime + retention as the current time.
+        // Retention window for baseTime + retention is [baseTime, MAX]
+        Instant now = baseTime.plus(retention);
+
+        // Key1 (stored at baseTime) - should be found (exactly at the beginning of the window)
+        inputTopic.pipeInput("key1", event1, now);
+        // Key2 (stored at baseTime + retention/2) - should be found (in the middle of the window)
+        inputTopic.pipeInput("key2", event2, now);
+        // Key3 (stored at baseTime + retention - 1s) - should be found (near the end of the window)
+        inputTopic.pipeInput("key3", event3, now);
+
+        assertThat(outputTopic.readValuesToList()).isEmpty();
+
+        // Verify total metrics
+        assertThat(metrics.get("dedup.messages.processed").counter().count()).isEqualTo(6.0);
+        assertThat(metrics.get("dedup.messages.duplicate").counter().count()).isEqualTo(3.0);
+        assertThat(metrics.get("dedup.messages.unique").counter().count()).isEqualTo(3.0);
     }
 
 }

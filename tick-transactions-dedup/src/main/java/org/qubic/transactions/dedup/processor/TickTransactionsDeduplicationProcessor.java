@@ -88,14 +88,14 @@ public class TickTransactionsDeduplicationProcessor implements Processor<String,
             }
         }
 
-        stateStore.put(dedupKey, dedupValue, recordKeyTime.toEpochMilli());
-
         if (isDuplicate) {
             duplicateCounter.increment();
             if (log.isDebugEnabled()) {
                 log.debug("Duplicate found for tickNumber: [{}].", dedupKey);
             }
             return;
+        } else {
+            stateStore.put(dedupKey, dedupValue, recordKeyTime.toEpochMilli());
         }
 
         uniqueCounter.increment();

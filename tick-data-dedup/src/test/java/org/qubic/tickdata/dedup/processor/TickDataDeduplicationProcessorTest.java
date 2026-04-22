@@ -73,7 +73,7 @@ class TickDataDeduplicationProcessorTest {
         processor.process(record);
 
         verify(context, never()).forward(any());
-        verify(stateStore).put(eq("49485485"), eq("sig123"), anyLong());
+        verify(stateStore, never()).put(anyString(), anyString(), anyLong());
         assertThat(metrics.get("dedup.messages.duplicate").counter().count()).isEqualTo(1.0);
     }
 

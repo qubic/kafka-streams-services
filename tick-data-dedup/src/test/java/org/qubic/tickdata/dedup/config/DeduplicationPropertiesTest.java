@@ -15,6 +15,7 @@ import static org.assertj.core.api.Assertions.assertThat;
         "dedup.input-topic=test-input",
         "dedup.output-topic=test-output",
         "dedup.retention-duration=10m",
+        "dedup.window-size=5m",
         "dedup.store-name=test-store",
         "dedup.change-log-enabled=false",
         "dedup.caching-enabled=false"
@@ -29,6 +30,7 @@ public class DeduplicationPropertiesTest {
         assertThat(properties.getInputTopic()).isEqualTo("test-input");
         assertThat(properties.getOutputTopic()).isEqualTo("test-output");
         assertThat(properties.getRetentionDuration()).isEqualTo(Duration.ofMinutes(10));
+        assertThat(properties.getWindowSize()).isEqualTo(Duration.ofMinutes(5));
         assertThat(properties.getStoreName()).isEqualTo("test-store");
         assertThat(properties.isChangeLogEnabled()).isFalse();
         assertThat(properties.isCachingEnabled()).isFalse();

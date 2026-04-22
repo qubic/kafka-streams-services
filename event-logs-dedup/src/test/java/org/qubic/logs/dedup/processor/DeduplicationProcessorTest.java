@@ -64,7 +64,7 @@ class DeduplicationProcessorTest {
         processor.process(record);
 
         verify(context, never()).forward(any());
-        verify(stateStore).put(eq("123:2"), eq("100:1:3:digest"), anyLong());
+        verify(stateStore, never()).put(anyString(), anyString(), anyLong()); // don't update with duplicate
         assertThat(metrics.get("dedup.messages.duplicate").counter().count()).isEqualTo(1.0);
     }
 

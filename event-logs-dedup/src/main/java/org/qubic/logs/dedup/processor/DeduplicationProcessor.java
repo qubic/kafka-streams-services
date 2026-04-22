@@ -117,16 +117,20 @@ public class DeduplicationProcessor implements Processor<String, EventLog, Strin
             validateAgainstStoredDuplicates(iterator, dedupValue, event, dedupKey, ignorePotentialError);
         }
 
-        // Always store the latest occurrence (truncated to a minute for overwriting similar keys within one minute).
-        stateStore.put(dedupKey, dedupValue, recordKeyTime.toEpochMilli());
-
         if (isDuplicate) {
+
             // Found a duplicate within the retention window
             duplicateCounter.increment();
             if (log.isDebugEnabled()) {
                 log.debug("Duplicate found for key: [{}].", dedupKey);
             }
             return null;
+
+        } else {
+
+            // No need to update the store for duplicates. Retention time should be long enough.
+            stateStore.put(dedupKey, dedupValue, recordKeyTime.toEpochMilli());
+
         }
 
         // Not a duplicate - forward

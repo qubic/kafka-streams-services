@@ -41,12 +41,13 @@ public class DeduplicationTopology {
         log.info("Output topic: [{}]", properties.getOutputTopic());
         log.info("Retention duration: [{}]", properties.getRetentionDuration());
 
+        // window store is not correct for this use case, but it solves the cleanup after retention
         StoreBuilder<WindowStore<String, Long>> dedupStoreBuilder =
                 Stores.windowStoreBuilder(
                                 Stores.persistentWindowStore(
                                         properties.getStoreName(),
                                         properties.getRetentionDuration(),
-                                        properties.getRetentionDuration(),
+                                        properties.getWindowSize(),
                                         false
                                 ),
                                 Serdes.String(),
@@ -54,18 +55,21 @@ public class DeduplicationTopology {
                         );
 
         if (properties.isCachingEnabled()) {
+            log.info("Store caching is enabled.");
             dedupStoreBuilder.withCachingEnabled();
         } else {
+            log.info("Store caching is disabled.");
             dedupStoreBuilder.withCachingDisabled();
         }
 
         if (properties.isChangeLogEnabled()) {
-            log.info("Changelog is enabled.");
+            log.info("Store changelog is enabled.");
             dedupStoreBuilder.withLoggingEnabled(new HashMap<>());
         } else {
-            log.warn("Changelog is disabled.");
+            log.warn("Store changelog is disabled.");
             dedupStoreBuilder.withLoggingDisabled();
         }
+
         streamsBuilder.addStateStore(dedupStoreBuilder);
 
         KStream<String, TickTransactions> input = streamsBuilder.stream(properties.getInputTopic(), 

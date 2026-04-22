@@ -12,6 +12,7 @@ public class DeduplicationProperties {
     private String inputTopic;
     private String outputTopic;
     private Duration retentionDuration;
+    private Duration windowSize;
     private String storeName;
     private boolean changeLogEnabled;
     private boolean cachingEnabled;

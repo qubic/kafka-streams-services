@@ -16,6 +16,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 @TestPropertySource(properties = {
         "dedup.input-topic=test-input",
         "dedup.output-topic=test-output",
+        "dedup.retention-duration=1h",
+        "dedup.window-size=5m",
         "dedup.ignored-log-keys.1=1-3,5-7",
         "dedup.ignored-log-keys.2=2",
 })
@@ -38,6 +40,8 @@ public class DeduplicationPropertiesTest {
     void shouldPopulateOtherProperties() {
         assertThat(properties.getInputTopic()).isEqualTo("test-input");
         assertThat(properties.getOutputTopic()).isEqualTo("test-output");
+        assertThat(properties.getRetentionDuration().toHours()).isEqualTo(1);
+        assertThat(properties.getWindowSize().toMinutes()).isEqualTo(5);
     }
 
     @EnableConfigurationProperties(DeduplicationProperties.class)
