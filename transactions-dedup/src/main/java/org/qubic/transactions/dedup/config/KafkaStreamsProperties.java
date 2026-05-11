@@ -12,7 +12,7 @@ import java.util.Map;
 import static org.apache.kafka.streams.StreamsConfig.*;
 
 @Data
-@ConfigurationProperties(prefix = "streams")
+@ConfigurationProperties(prefix = "streams", ignoreUnknownFields = false)
 public class KafkaStreamsProperties {
 
     private List<String> bootstrapServers;

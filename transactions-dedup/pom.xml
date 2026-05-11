@@ -12,11 +12,11 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <artifactId>tick-transactions-dedup</artifactId>
+    <artifactId>transactions-dedup</artifactId>
     <packaging>jar</packaging>
 
-    <name>Tick Transactions Deduplication Service</name>
-    <description>Kafka Streams deduplication service for tick transactions with Spring Boot</description>
+    <name>Transactions Deduplication Service</name>
+    <description>Kafka Streams deduplication service for transactions with Spring Boot</description>
 
     <dependencies>
         <!-- Spring Boot Starters -->

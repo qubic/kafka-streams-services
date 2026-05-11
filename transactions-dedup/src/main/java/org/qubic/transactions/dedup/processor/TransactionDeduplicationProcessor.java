@@ -25,6 +25,7 @@ public class TransactionDeduplicationProcessor implements Processor<String, Tran
     private final MeterRegistry meterRegistry;
     private final Duration retention;
 
+
     private ProcessorContext<String, Transaction> context;
     private WindowStore<String, String> stateStore;
 
@@ -32,6 +33,7 @@ public class TransactionDeduplicationProcessor implements Processor<String, Tran
     private Counter duplicateCounter;
     private Counter uniqueCounter;
     private Counter tickCounter;
+    private long lastTickNumber = -1;
 
     public TransactionDeduplicationProcessor(String storeName, Duration retention, MeterRegistry meterRegistry) {
         this.storeName = storeName;
@@ -45,38 +47,43 @@ public class TransactionDeduplicationProcessor implements Processor<String, Tran
         this.stateStore = context.getStateStore(storeName);
 
         this.processedCounter = Counter.builder("dedup.messages.processed")
-                .tag("type", "tick-transactions")
+                .tag("type", "transactions")
                 .description("Total messages processed")
                 .register(meterRegistry);
 
         this.duplicateCounter = Counter.builder("dedup.messages.duplicate")
-                .tag("type", "tick-transactions")
+                .tag("type", "transactions")
                 .description("Duplicate messages filtered")
                 .register(meterRegistry);
 
         this.uniqueCounter = Counter.builder("dedup.messages.unique")
-                .tag("type", "tick-transactions")
+                .tag("type", "transactions")
                 .description("Unique messages forwarded")
                 .register(meterRegistry);
 
         this.tickCounter = Counter.builder("dedup.ticks.processed")
-                .tag("type", "tick-transactions")
+                .tag("type", "transactions")
                 .description("Total ticks processed")
                 .register(meterRegistry);
 
-        log.info("TickTransactionsDeduplicationProcessor initialized for store: [{}].", storeName);
+        log.info("TransactionsDeduplicationProcessor initialized for store: [{}].", storeName);
     }
 
     @Override
     public void process(Record<String, Transaction> record) {
         processedCounter.increment();
-        tickCounter.increment();
 
         Transaction transaction = record.value();
         Assert.notNull(transaction, "Received null transaction.");
+        long tickNumber = transaction.getTickNumber();
+
+        if (tickNumber > lastTickNumber) {
+            tickCounter.increment();
+            lastTickNumber = tickNumber;
+        }
 
         // shorten hash and key a bit. key collision should be very unlikely within one tick
-        String dedupKey = String.format("%d:%s", transaction.getTickNumber(), StringUtils.substring(transaction.getHash(), 0, 16));
+        String dedupKey = String.format("%d:%s", tickNumber, StringUtils.substring(transaction.getHash(), 0, 16));
         String dedupValue = StringUtils.substring(transaction.getSignature(), 0, 8); // only take the first 8 characters (6 bytes)
 
         Instant recordTime = Instant.ofEpochMilli(record.timestamp());
@@ -118,6 +125,6 @@ public class TransactionDeduplicationProcessor implements Processor<String, Tran
 
     @Override
     public void close() {
-        log.info("TickTransactionsDeduplicationProcessor closing...");
+        log.info("TransactionsDeduplicationProcessor closing...");
     }
 }

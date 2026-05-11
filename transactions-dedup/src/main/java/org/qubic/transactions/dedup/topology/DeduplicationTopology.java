@@ -36,7 +36,7 @@ public class DeduplicationTopology {
 
     @Bean
     public KStream<String, Transaction> kStream(StreamsBuilder streamsBuilder) {
-        log.info("Building Kafka Streams topology for tick transactions...");
+        log.info("Building Kafka Streams topology for transactions dedup...");
         log.info("Input topic: [{}]", properties.getInputTopic());
         log.info("Output topic: [{}]", properties.getOutputTopic());
         log.info("Retention duration: [{}]", properties.getRetentionDuration());

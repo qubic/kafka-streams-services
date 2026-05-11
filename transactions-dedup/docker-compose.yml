@@ -1,8 +1,8 @@
 services:
-  event-logs-dedup:
-#    image: ghcr.io/qubic/tick-transactions-dedup:${DEDUP_VERSION}
+  transactions-dedup:
+#    image: ghcr.io/qubic/transactions-dedup:${DEDUP_VERSION}
     image: sha256:16b77c6380f2ab4f66d31dabd2b754def3536a1e7709e73dfc9a0d102e4bb81e
-    container_name: tick-transactions-dedup
+    container_name: transactions-dedup
     user: 1000:1000
     environment:
       - KAFKA_BOOTSTRAP_SERVERS=localhost:9092

@@ -15,7 +15,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @TestPropertySource(properties = {
         "streams.replication-factor=3",
         "streams.application-id=test-app",
-        "streams.max-request-size-in-mb=5"
+        "streams.max-request-size-in-mb=5",
 })
 public class KafkaStreamsPropertiesTest {
 

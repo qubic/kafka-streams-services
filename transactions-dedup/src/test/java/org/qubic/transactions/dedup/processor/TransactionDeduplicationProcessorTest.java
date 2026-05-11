@@ -50,6 +50,7 @@ class TransactionDeduplicationProcessorTest {
         verify(context).forward(record);
         verify(stateStore).put(eq("12345:hash"), eq("sig"), anyLong());
         assertThat(metrics.get("dedup.messages.unique").counter().count()).isEqualTo(1.0);
+        assertThat(metrics.get("dedup.ticks.processed").counter().count()).isEqualTo(1.0);
     }
 
     @Test
@@ -70,6 +71,7 @@ class TransactionDeduplicationProcessorTest {
         verify(context, never()).forward(any());
         verify(stateStore, never()).put(anyString(), anyString(), anyLong()); // don't update with duplicate
         assertThat(metrics.get("dedup.messages.duplicate").counter().count()).isEqualTo(1.0);
+        assertThat(metrics.get("dedup.ticks.processed").counter().count()).isEqualTo(1.0);
     }
 
     @Test
