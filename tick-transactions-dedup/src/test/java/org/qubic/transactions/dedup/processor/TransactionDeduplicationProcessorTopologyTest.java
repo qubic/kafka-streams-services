@@ -13,36 +13,34 @@ import org.apache.kafka.streams.state.WindowStoreIterator;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.qubic.transactions.dedup.model.TickTransactions;
 import org.qubic.transactions.dedup.model.Transaction;
-import org.qubic.transactions.dedup.serde.TickTransactionsSerde;
+import org.qubic.transactions.dedup.serde.TransactionSerde;
 import tools.jackson.databind.ObjectMapper;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.List;
 import java.util.Properties;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SuppressWarnings("resource")
-class TickTransactionsDeduplicationProcessorTopologyTest {
+class TransactionDeduplicationProcessorTopologyTest {
 
     private final MeterRegistry metrics = new SimpleMeterRegistry();
     private final String storeName = "test-store";
-    private final TickTransactionsSerde tickTransactionsSerde = new TickTransactionsSerde(new ObjectMapper());
+    private final TransactionSerde transactionSerde = new TransactionSerde(new ObjectMapper());
     private final Duration retention = Duration.ofMinutes(5);
 
     private TopologyTestDriver testDriver;
-    private TestInputTopic<String, TickTransactions> inputTopic;
-    private TestOutputTopic<String, TickTransactions> outputTopic;
-    private WindowStore<String, Long> stateStore;
+    private TestInputTopic<String, Transaction> inputTopic;
+    private TestOutputTopic<String, Transaction> outputTopic;
+    private WindowStore<String, String> stateStore;
 
     @BeforeEach
     void setUp() {
         Topology topology = new Topology();
-        topology.addSource("source", Serdes.String().deserializer(), tickTransactionsSerde.deserializer(), "input-topic");
-        topology.addProcessor("processor", () -> new TickTransactionsDeduplicationProcessor(storeName, retention, metrics), "source");
+        topology.addSource("source", Serdes.String().deserializer(), transactionSerde.deserializer(), "input-topic");
+        topology.addProcessor("processor", () -> new TransactionDeduplicationProcessor(storeName, retention, metrics), "source");
         topology.addStateStore(
                 Stores.windowStoreBuilder(
                         Stores.inMemoryWindowStore(storeName,
@@ -50,19 +48,19 @@ class TickTransactionsDeduplicationProcessorTopologyTest {
                                 retention,
                                 false),
                         Serdes.String(),
-                        Serdes.Long()
+                        Serdes.String()
                 ),
                 "processor"
         );
-        topology.addSink("sink", "output-topic", Serdes.String().serializer(), tickTransactionsSerde.serializer(), "processor");
+        topology.addSink("sink", "output-topic", Serdes.String().serializer(), transactionSerde.serializer(), "processor");
 
         Properties props = new Properties();
         props.setProperty("application.id", "test-app");
         props.setProperty("bootstrap.servers", "dummy:1234");
 
         testDriver = new TopologyTestDriver(topology, props);
-        inputTopic = testDriver.createInputTopic("input-topic", Serdes.String().serializer(), tickTransactionsSerde.serializer());
-        outputTopic = testDriver.createOutputTopic("output-topic", Serdes.String().deserializer(), tickTransactionsSerde.deserializer());
+        inputTopic = testDriver.createInputTopic("input-topic", Serdes.String().serializer(), transactionSerde.serializer());
+        outputTopic = testDriver.createOutputTopic("output-topic", Serdes.String().deserializer(), transactionSerde.deserializer());
         stateStore = testDriver.getWindowStore(storeName);
     }
 
@@ -75,10 +73,10 @@ class TickTransactionsDeduplicationProcessorTopologyTest {
 
     @Test
     void shouldForwardNewRecord() {
-        TickTransactions event = TickTransactions.builder()
-                .epoch(208L)
-                .tickNumber(49189280L)
-                .transactions(List.of(new Transaction()))
+        Transaction event = Transaction.builder()
+                .hash("hash1")
+                .signature("sig1")
+                .tickNumber(12345)
                 .build();
 
         Instant timestamp = Instant.now();
@@ -87,22 +85,23 @@ class TickTransactionsDeduplicationProcessorTopologyTest {
         assertThat(outputTopic.readValuesToList()).containsExactly(event);
 
         // Verify state store
-        WindowStoreIterator<Long> iterator = stateStore.fetch("49189280", Instant.EPOCH, Instant.now());
+        WindowStoreIterator<String> iterator = stateStore.fetch("12345:hash1", Instant.EPOCH, Instant.now());
         assertThat(iterator).hasNext();
-        assertThat(iterator.next().value).isEqualTo(1L);
+        assertThat(iterator.next().value).isEqualTo("sig1");
     }
 
     @Test
     void shouldNotForwardDuplicateRecord() {
-        TickTransactions event = TickTransactions.builder()
-                .epoch(208L)
-                .tickNumber(49189280L)
+        Transaction event = Transaction.builder()
+                .hash("hash1")
+                .signature("sig1")
+                .tickNumber(12345)
                 .build();
 
         Instant timestamp = Instant.now();
         inputTopic.pipeInput("key", event, timestamp);
         inputTopic.pipeInput("key", event, timestamp.plusMillis(50)); // duplicate within retention
-        
+
         assertThat(outputTopic.readValuesToList()).hasSize(1);
 
         // Verify metrics
@@ -113,18 +112,19 @@ class TickTransactionsDeduplicationProcessorTopologyTest {
 
     @Test
     void shouldForwardDuplicateOutsideRetentionPeriod() {
-        TickTransactions event = TickTransactions.builder()
-                .epoch(208L)
-                .tickNumber(49189280L)
+        Transaction event = Transaction.builder()
+                .hash("hash1")
+                .signature("sig1")
+                .tickNumber(12345)
                 .build();
 
         inputTopic.pipeInput("key", event);
         inputTopic.advanceTime(Duration.ofSeconds(1));
         inputTopic.pipeInput("key", event); // duplicate within retention
-        
+
         inputTopic.advanceTime(retention.plusMinutes(1)); // outside retention
         inputTopic.pipeInput("key", event); // should be forwarded
-        
+
         assertThat(outputTopic.readValuesToList()).hasSize(2);
     }
 }

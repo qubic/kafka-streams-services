@@ -3,7 +3,6 @@ package org.qubic.transactions.dedup;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.junit.jupiter.api.Test;
-import org.qubic.transactions.dedup.model.TickTransactions;
 import org.qubic.transactions.dedup.model.Transaction;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -15,7 +14,6 @@ import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.TestPropertySource;
 
 import java.time.Duration;
-import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -34,7 +32,7 @@ import static org.assertj.core.api.Assertions.assertThat;
         "dedup.output-topic=transactions-out",
         "streams.state-dir=/tmp/${random.uuid}"
 })
-public class TickTransactionsDeduplicationApplicationIT {
+public class TransactionDeduplicationApplicationIT {
 
     @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
     @Autowired
@@ -47,45 +45,40 @@ public class TickTransactionsDeduplicationApplicationIT {
                 .hash("hash1")
                 .source("source1")
                 .destination("dest1")
+                .signature("sig1")
                 .amount(100)
                 .tickNumber(49189280)
                 .timestamp(1775990260000L)
                 .build();
 
-        TickTransactions tickTransactions = TickTransactions.builder()
-                .epoch(208)
-                .tickNumber(49189280)
-                .transactions(List.of(transaction))
-                .build();
+        KafkaTemplate<String, Transaction> template = createKafkaTemplate();
+        template.send("transactions-in", "hash1", transaction);
+        template.send("transactions-in", "hash1", transaction);
+        template.send("transactions-in", "hash1", transaction);
 
-        KafkaTemplate<String, TickTransactions> template = createKafkaTemplate();
-        template.send("transactions-in", "49189280", tickTransactions);
-        template.send("transactions-in", "49189280", tickTransactions);
-        template.send("transactions-in", "49189280", tickTransactions);
-
-        Consumer<String, TickTransactions> consumer = createConsumer();
+        Consumer<String, Transaction> consumer = createConsumer();
         this.embeddedKafka.consumeFromAnEmbeddedTopic(consumer, "transactions-out");
-        ConsumerRecords<String, TickTransactions> replies = KafkaTestUtils.getRecords(consumer, Duration.ofSeconds(10));
-        
+        ConsumerRecords<String, Transaction> replies = KafkaTestUtils.getRecords(consumer, Duration.ofSeconds(10));
+
         // Should only have 1 unique record
         assertThat(replies.count()).isEqualTo(1);
-        assertThat(replies.iterator().next().value().getTickNumber()).isEqualTo(49189280);
+        assertThat(replies.iterator().next().value().getHash()).isEqualTo("hash1");
     }
 
-    private Consumer<String, TickTransactions> createConsumer() {
+    private Consumer<String, Transaction> createConsumer() {
         Map<String, Object> consumerProps = KafkaTestUtils.consumerProps(this.embeddedKafka, "test-group", true);
         consumerProps.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
         consumerProps.put("value.deserializer", "org.springframework.kafka.support.serializer.JsonDeserializer");
         consumerProps.put("spring.json.trusted.packages", "*");
-        ConsumerFactory<String, TickTransactions> cf = new DefaultKafkaConsumerFactory<>(consumerProps);
+        ConsumerFactory<String, Transaction> cf = new DefaultKafkaConsumerFactory<>(consumerProps);
         return cf.createConsumer();
     }
 
-    private KafkaTemplate<String, TickTransactions> createKafkaTemplate() {
+    private KafkaTemplate<String, Transaction> createKafkaTemplate() {
         Map<String, Object> producerProps = KafkaTestUtils.producerProps(embeddedKafka);
         producerProps.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
         producerProps.put("value.serializer", "org.springframework.kafka.support.serializer.JsonSerializer");
-        ProducerFactory<String, TickTransactions> pf = new DefaultKafkaProducerFactory<>(producerProps);
+        ProducerFactory<String, Transaction> pf = new DefaultKafkaProducerFactory<>(producerProps);
         return new KafkaTemplate<>(pf);
     }
 

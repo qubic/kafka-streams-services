@@ -12,9 +12,9 @@ import org.apache.kafka.streams.state.StoreBuilder;
 import org.apache.kafka.streams.state.Stores;
 import org.apache.kafka.streams.state.WindowStore;
 import org.qubic.transactions.dedup.config.DeduplicationProperties;
-import org.qubic.transactions.dedup.model.TickTransactions;
-import org.qubic.transactions.dedup.processor.TickTransactionsDeduplicationProcessorSupplier;
-import org.qubic.transactions.dedup.serde.TickTransactionsSerde;
+import org.qubic.transactions.dedup.model.Transaction;
+import org.qubic.transactions.dedup.processor.TransactionDeduplicationProcessorSupplier;
+import org.qubic.transactions.dedup.serde.TransactionSerde;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -25,24 +25,24 @@ import java.util.HashMap;
 public class DeduplicationTopology {
 
     private final DeduplicationProperties properties;
-    private final TickTransactionsSerde tickTransactionsSerde;
+    private final TransactionSerde transactionSerde;
     private final MeterRegistry meterRegistry;
 
-    public DeduplicationTopology(DeduplicationProperties properties, TickTransactionsSerde tickTransactionsSerde, MeterRegistry meterRegistry) {
+    public DeduplicationTopology(DeduplicationProperties properties, TransactionSerde transactionSerde, MeterRegistry meterRegistry) {
         this.properties = properties;
-        this.tickTransactionsSerde = tickTransactionsSerde;
+        this.transactionSerde = transactionSerde;
         this.meterRegistry = meterRegistry;
     }
 
     @Bean
-    public KStream<String, TickTransactions> kStream(StreamsBuilder streamsBuilder) {
+    public KStream<String, Transaction> kStream(StreamsBuilder streamsBuilder) {
         log.info("Building Kafka Streams topology for tick transactions...");
         log.info("Input topic: [{}]", properties.getInputTopic());
         log.info("Output topic: [{}]", properties.getOutputTopic());
         log.info("Retention duration: [{}]", properties.getRetentionDuration());
 
         // window store is not correct for this use case, but it solves the cleanup after retention
-        StoreBuilder<WindowStore<String, Long>> dedupStoreBuilder =
+        StoreBuilder<WindowStore<String, String>> dedupStoreBuilder =
                 Stores.windowStoreBuilder(
                                 Stores.persistentWindowStore(
                                         properties.getStoreName(),
@@ -51,7 +51,7 @@ public class DeduplicationTopology {
                                         false
                                 ),
                                 Serdes.String(),
-                                Serdes.Long()
+                                Serdes.String()
                         );
 
         if (properties.isCachingEnabled()) {
@@ -72,15 +72,15 @@ public class DeduplicationTopology {
 
         streamsBuilder.addStateStore(dedupStoreBuilder);
 
-        KStream<String, TickTransactions> input = streamsBuilder.stream(properties.getInputTopic(), 
-                Consumed.with(Serdes.String(), tickTransactionsSerde));
+        KStream<String, Transaction> input = streamsBuilder.stream(properties.getInputTopic(), 
+                Consumed.with(Serdes.String(), transactionSerde));
 
-        ProcessorSupplier<String, TickTransactions, String, TickTransactions> processorSupplier = 
-                new TickTransactionsDeduplicationProcessorSupplier(properties.getStoreName(), properties.getRetentionDuration(), meterRegistry);
+        ProcessorSupplier<String, Transaction, String, Transaction> processorSupplier = 
+                new TransactionDeduplicationProcessorSupplier(properties.getStoreName(), properties.getRetentionDuration(), meterRegistry);
 
-        KStream<String, TickTransactions> deduplicated = input.process(processorSupplier, properties.getStoreName());
+        KStream<String, Transaction> deduplicated = input.process(processorSupplier, properties.getStoreName());
 
-        deduplicated.to(properties.getOutputTopic(), Produced.with(Serdes.String(), tickTransactionsSerde));
+        deduplicated.to(properties.getOutputTopic(), Produced.with(Serdes.String(), transactionSerde));
 
         log.info("Topology built successfully.");
         return deduplicated;

@@ -3,26 +3,26 @@ package org.qubic.transactions.dedup.serde;
 import tools.jackson.databind.ObjectMapper;
 import org.apache.kafka.common.errors.SerializationException;
 import org.junit.jupiter.api.Test;
-import org.qubic.transactions.dedup.model.TickTransactions;
+import org.qubic.transactions.dedup.model.Transaction;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-class TickTransactionsSerdeTest {
+class TransactionSerdeTest {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
-    private final TickTransactionsSerde serde = new TickTransactionsSerde(objectMapper);
+    private final TransactionSerde serde = new TransactionSerde(objectMapper);
 
     @Test
     void serializeAndDeserialize_roundTrip_ok() {
-        TickTransactions original = TickTransactions.builder()
-                .epoch(208L)
+        Transaction original = Transaction.builder()
+                .hash("hash1")
                 .tickNumber(49189280L)
                 .build();
 
         byte[] bytes = serde.serializer().serialize("topic", original);
         assertThat(bytes).isNotNull();
-        TickTransactions restored = serde.deserializer().deserialize("topic", bytes);
+        Transaction restored = serde.deserializer().deserialize("topic", bytes);
         assertThat(restored).isEqualTo(original);
     }
 
@@ -34,7 +34,7 @@ class TickTransactionsSerdeTest {
 
     @Test
     void deserialize_null_returnsNull() {
-        TickTransactions result = serde.deserializer().deserialize("topic", null);
+        Transaction result = serde.deserializer().deserialize("topic", null);
         assertThat(result).isNull();
     }
 

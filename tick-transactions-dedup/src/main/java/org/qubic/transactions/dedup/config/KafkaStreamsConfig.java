@@ -4,7 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
-import org.qubic.transactions.dedup.serde.TickTransactionsSerde;
+import org.qubic.transactions.dedup.serde.TransactionSerde;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
@@ -38,7 +38,7 @@ public class KafkaStreamsConfig {
     KafkaStreamsConfiguration kafkaStreamsConfig() {
         Map<String, Object> props = new HashMap<>(streamsProperties.asProperties());
         props.put(DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.String().getClass().getName());
-        props.put(DEFAULT_VALUE_SERDE_CLASS_CONFIG, TickTransactionsSerde.class.getName());
+        props.put(DEFAULT_VALUE_SERDE_CLASS_CONFIG, TransactionSerde.class.getName());
         log.info("Kafka Streams configuration: {}", props);
         return new KafkaStreamsConfiguration(props);
     }

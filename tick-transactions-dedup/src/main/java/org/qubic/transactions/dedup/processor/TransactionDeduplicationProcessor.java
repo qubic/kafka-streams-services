@@ -3,14 +3,15 @@ package org.qubic.transactions.dedup.processor;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.processor.api.Processor;
 import org.apache.kafka.streams.processor.api.ProcessorContext;
 import org.apache.kafka.streams.processor.api.Record;
 import org.apache.kafka.streams.state.WindowStore;
 import org.apache.kafka.streams.state.WindowStoreIterator;
-import org.qubic.transactions.dedup.model.TickTransactions;
+import org.qubic.transactions.dedup.model.Transaction;
 import org.springframework.util.Assert;
 
 import java.time.Duration;
@@ -18,28 +19,28 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 
 @Slf4j
-public class TickTransactionsDeduplicationProcessor implements Processor<String, TickTransactions, String, TickTransactions> {
+public class TransactionDeduplicationProcessor implements Processor<String, Transaction, String, Transaction> {
 
     private final String storeName;
     private final MeterRegistry meterRegistry;
     private final Duration retention;
 
-    private ProcessorContext<String, TickTransactions> context;
-    private WindowStore<String, Long> stateStore;
+    private ProcessorContext<String, Transaction> context;
+    private WindowStore<String, String> stateStore;
 
     private Counter processedCounter;
     private Counter duplicateCounter;
     private Counter uniqueCounter;
     private Counter tickCounter;
 
-    public TickTransactionsDeduplicationProcessor(String storeName, Duration retention, MeterRegistry meterRegistry) {
+    public TransactionDeduplicationProcessor(String storeName, Duration retention, MeterRegistry meterRegistry) {
         this.storeName = storeName;
         this.retention = retention;
         this.meterRegistry = meterRegistry;
     }
 
     @Override
-    public void init(ProcessorContext<String, TickTransactions> context) {
+    public void init(ProcessorContext<String, Transaction> context) {
         this.context = context;
         this.stateStore = context.getStateStore(storeName);
 
@@ -67,21 +68,22 @@ public class TickTransactionsDeduplicationProcessor implements Processor<String,
     }
 
     @Override
-    public void process(Record<String, TickTransactions> record) {
+    public void process(Record<String, Transaction> record) {
         processedCounter.increment();
         tickCounter.increment();
 
-        TickTransactions tickTransactions = record.value();
-        Assert.notNull(tickTransactions, "Received null tick transactions.");
+        Transaction transaction = record.value();
+        Assert.notNull(transaction, "Received null transaction.");
 
-        String dedupKey = String.valueOf(tickTransactions.getTickNumber());
-        long dedupValue = CollectionUtils.size(tickTransactions.getTransactions());
+        // shorten hash and key a bit. key collision should be very unlikely within one tick
+        String dedupKey = String.format("%d:%s", transaction.getTickNumber(), StringUtils.substring(transaction.getHash(), 0, 16));
+        String dedupValue = StringUtils.substring(transaction.getSignature(), 0, 8); // only take the first 8 characters (6 bytes)
 
         Instant recordTime = Instant.ofEpochMilli(record.timestamp());
         Instant recordKeyTime = recordTime.truncatedTo(ChronoUnit.MINUTES);
 
         boolean isDuplicate = false;
-        try (WindowStoreIterator<Long> iterator = stateStore.fetch(dedupKey, recordKeyTime.minus(retention), Instant.ofEpochMilli(Long.MAX_VALUE))) {
+        try (WindowStoreIterator<String> iterator = stateStore.fetch(dedupKey, recordKeyTime.minus(retention), Instant.ofEpochMilli(Long.MAX_VALUE))) {
             if (iterator.hasNext()) {
                 isDuplicate = true;
                 validateDuplicate(iterator, dedupValue, dedupKey);
@@ -91,7 +93,7 @@ public class TickTransactionsDeduplicationProcessor implements Processor<String,
         if (isDuplicate) {
             duplicateCounter.increment();
             if (log.isDebugEnabled()) {
-                log.debug("Duplicate found for tickNumber: [{}].", dedupKey);
+                log.debug("Duplicate found for hash: [{}].", dedupKey);
             }
             return;
         } else {
@@ -102,14 +104,14 @@ public class TickTransactionsDeduplicationProcessor implements Processor<String,
         context.forward(record);
     }
 
-    private void validateDuplicate(WindowStoreIterator<Long> iterator, long expectedValue, String key) {
+    private void validateDuplicate(WindowStoreIterator<String> iterator, String expectedValue, String key) {
         while (iterator.hasNext()) {
-            KeyValue<Long, Long> entry = iterator.next();
-            if (entry.value != expectedValue) {
+            KeyValue<Long, String> entry = iterator.next();
+            if (!Strings.CS.equals(entry.value, expectedValue)) {
                 log.error("Invalid duplicate value for key [{}]: expected [{}], found [{}].", key, expectedValue, entry.value);
                 // In this case we might still want to throw an exception or just log it.
                 // Following event-logs-dedup style which throws IllegalStateException.
-                throw new IllegalStateException(String.format("Invalid duplicate value for key [%s]: expected [%d], found [%d].", key, expectedValue, entry.value));
+                throw new IllegalStateException(String.format("Invalid duplicate value for key [%s]: expected [%s], found [%s].", key, expectedValue, entry.value));
             }
         }
     }

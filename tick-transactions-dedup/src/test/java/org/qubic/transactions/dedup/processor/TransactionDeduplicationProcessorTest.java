@@ -9,24 +9,22 @@ import org.apache.kafka.streams.state.WindowStore;
 import org.apache.kafka.streams.state.WindowStoreIterator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.qubic.transactions.dedup.model.TickTransactions;
 import org.qubic.transactions.dedup.model.Transaction;
 
 import java.time.Duration;
-import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.*;
 
-class TickTransactionsDeduplicationProcessorTest {
+class TransactionDeduplicationProcessorTest {
 
     private final MeterRegistry metrics = new SimpleMeterRegistry();
     private final Duration retention = Duration.ofMinutes(5);
 
-    private final ProcessorContext<String, TickTransactions> context = mock();
-    private final WindowStore<String, Long> stateStore = mock();
-    private final TickTransactionsDeduplicationProcessor processor = new TickTransactionsDeduplicationProcessor("test-store", retention, metrics);
+    private final ProcessorContext<String, Transaction> context = mock();
+    private final WindowStore<String, String> stateStore = mock();
+    private final TransactionDeduplicationProcessor processor = new TransactionDeduplicationProcessor("test-store", retention, metrics);
 
     @BeforeEach
     void setUp() {
@@ -36,57 +34,57 @@ class TickTransactionsDeduplicationProcessorTest {
 
     @Test
     void process_givenUnique_thenForward() {
-        TickTransactions tickTransactions = TickTransactions.builder()
-                .epoch(208L)
-                .tickNumber(49189280L)
-                .transactions(List.of(new Transaction()))
+        Transaction transaction = Transaction.builder()
+                .hash("hash")
+                .signature("sig")
+                .tickNumber(12345)
                 .build();
-        Record<String, TickTransactions> record = new Record<>("key", tickTransactions, 1000L);
-        
-        final WindowStoreIterator<Long> iterator = mock();
+        Record<String, Transaction> record = new Record<>("key", transaction, 1000L);
+
+        final WindowStoreIterator<String> iterator = mock();
         when(iterator.hasNext()).thenReturn(false);
-        when(stateStore.fetch(eq("49189280"), any(), any())).thenReturn(iterator);
+        when(stateStore.fetch(eq("12345:hash"), any(), any())).thenReturn(iterator);
 
         processor.process(record);
 
         verify(context).forward(record);
-        verify(stateStore).put(eq("49189280"), eq(1L), anyLong());
+        verify(stateStore).put(eq("12345:hash"), eq("sig"), anyLong());
         assertThat(metrics.get("dedup.messages.unique").counter().count()).isEqualTo(1.0);
     }
 
     @Test
     void process_givenDuplicate_thenDoNotForward() {
-        TickTransactions tickTransactions = TickTransactions.builder()
-                .epoch(208L)
-                .tickNumber(49189280L)
-                .transactions(List.of(new Transaction(), new Transaction()))
+        Transaction transaction = Transaction.builder()
+                .hash("hash")
+                .signature("sig")
+                .tickNumber(12345)
                 .build();
-        Record<String, TickTransactions> record = new Record<>("key", tickTransactions, 1000L);
+        Record<String, Transaction> record = new Record<>("key", transaction, 1000L);
 
-        final WindowStoreIterator<Long> iterator = mock();
+        final WindowStoreIterator<String> iterator = mock();
         when(iterator.hasNext()).thenReturn(true, false);
-        when(iterator.next()).thenReturn(KeyValue.pair(666L, 49189280L));
-        when(stateStore.fetch(eq("49189280"), any(), any())).thenReturn(iterator);
+        when(stateStore.fetch(eq("12345:hash"), any(), any())).thenReturn(iterator);
 
         processor.process(record);
 
         verify(context, never()).forward(any());
-        verify(stateStore, never()).put(anyString(), anyLong(), anyLong()); // don't update with duplicate
+        verify(stateStore, never()).put(anyString(), anyString(), anyLong()); // don't update with duplicate
         assertThat(metrics.get("dedup.messages.duplicate").counter().count()).isEqualTo(1.0);
     }
 
     @Test
     void process_givenDuplicateWithDifferentValue_thenThrows() {
-        TickTransactions tickTransactions = TickTransactions.builder()
-                .epoch(208L)
-                .tickNumber(49189280L)
+        Transaction transaction = Transaction.builder()
+                .hash("hash")
+                .signature("sig")
+                .tickNumber(12345)
                 .build();
-        Record<String, TickTransactions> record = new Record<>("key", tickTransactions, 1000L);
+        Record<String, Transaction> record = new Record<>("key", transaction, 1000L);
 
-        final WindowStoreIterator<Long> iterator = mock();
+        final WindowStoreIterator<String> iterator = mock();
         when(iterator.hasNext()).thenReturn(true, true, false);
-        when(iterator.next()).thenReturn(KeyValue.pair(666L, 12345L)); // wrong value
-        when(stateStore.fetch(eq("49189280"), any(), any())).thenReturn(iterator);
+        when(iterator.next()).thenReturn(KeyValue.pair(666L, "sig-unknown")); // wrong value
+        when(stateStore.fetch(eq("12345:hash"), any(), any())).thenReturn(iterator);
 
         assertThatThrownBy(() -> processor.process(record))
                 .isInstanceOf(IllegalStateException.class)

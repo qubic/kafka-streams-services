@@ -6,10 +6,10 @@ import org.springframework.kafka.annotation.EnableKafkaStreams;
 
 @SpringBootApplication
 @EnableKafkaStreams
-public class TickTransactionsDeduplicationApplication {
+public class TransactionDeduplicationApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(TickTransactionsDeduplicationApplication.class, args);
+        SpringApplication.run(TransactionDeduplicationApplication.class, args);
     }
 
 }
