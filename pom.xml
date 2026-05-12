@@ -8,18 +8,18 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>4.0.5</version>
+        <version>4.0.6</version>
         <relativePath/>
     </parent>
 
     <groupId>org.qubic</groupId>
     <artifactId>kafka-streams-services</artifactId>
-    <version>0.0.9-SNAPSHOT</version>
+    <version>0.0.10-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <modules>
         <module>event-logs-dedup</module>
-        <module>tick-transactions-dedup</module>
+        <module>transactions-dedup</module>
         <module>tick-data-dedup</module>
     </modules>
 

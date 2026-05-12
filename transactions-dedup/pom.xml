@@ -12,11 +12,11 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <artifactId>tick-data-dedup</artifactId>
+    <artifactId>transactions-dedup</artifactId>
     <packaging>jar</packaging>
 
-    <name>Tick Data Deduplication Service</name>
-    <description>Kafka Streams deduplication service for Tick Data with Spring Boot</description>
+    <name>Transactions Deduplication Service</name>
+    <description>Kafka Streams deduplication service for transactions with Spring Boot</description>
 
     <dependencies>
         <!-- Spring Boot Starters -->
@@ -39,6 +39,11 @@
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-collections4</artifactId>
+            <version>${commons-collections4.version}</version>
         </dependency>
 
         <!-- Kafka Streams -->
