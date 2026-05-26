@@ -29,7 +29,9 @@ public class EventLog {
 
     private String transactionHash;
 
+    // publisher flags
     private Boolean lastLogForTick; // empty if false
+    private Boolean dividend; // empty if false
 
     // we do not assume that the body is always present (unclear if true)
     private String logDigest; // hash of the event body

@@ -72,6 +72,7 @@ class EventLogJsonTest {
                 "transactionHash":"transactionHash",
                 "timestamp":123456789,
                 "body":{"key1":"value1","num":42},
+                "dividend": true,
                 "lastLogForTick": true
                 }
                 """;
@@ -91,6 +92,7 @@ class EventLogJsonTest {
         assertThat(parsed.getBody().get("key1")).isEqualTo("value1");
         assertThat(((Number) parsed.getBody().get("num")).intValue()).isEqualTo(42);
         assertThat(parsed.getLastLogForTick()).isTrue();
+        assertThat(parsed.getDividend()).isTrue();
     }
 
     @Test
