@@ -33,6 +33,7 @@ class EventLogSerdeTest {
                 .transactionHash("transactionHash")
                 .timestamp(1234567890)
                 .body(body)
+                .dividend(true)
                 .lastLogForTick(true)
                 .build();
 
