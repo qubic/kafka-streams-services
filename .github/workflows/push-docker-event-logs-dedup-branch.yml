@@ -7,7 +7,7 @@ permissions:
 on:
   push:
     branches:
-      - 'feature/tick-dedup'
+      - 'feature/support-dividend-flag'
 
 jobs:
   build-and-push:
