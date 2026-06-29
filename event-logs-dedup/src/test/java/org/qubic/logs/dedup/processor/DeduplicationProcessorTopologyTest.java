@@ -82,6 +82,7 @@ class DeduplicationProcessorTopologyTest {
                 .type(3)
                 .logId(4)
                 .logDigest("digest-1")
+                .timestamp(100123654)
                 .build();
 
         Instant timestamp = Instant.now();
@@ -93,7 +94,7 @@ class DeduplicationProcessorTopologyTest {
         String dedupKey = event.getEpoch() + ":" + event.getLogId();
         WindowStoreIterator<String> iterator = stateStore.fetch(dedupKey, Instant.EPOCH, Instant.now());
         assertThat(iterator).hasNext();
-        assertThat(iterator.next().value).isEqualTo(event.getTickNumber() + ":" + event.getIndex() + ":" + event.getType() + ":" + event.getLogDigest());
+        assertThat(iterator.next().value).isEqualTo(event.getTickNumber() + ":" + event.getIndex() + ":" + event.getType() + ":" + event.getLogDigest() + ":" + event.getTimestamp());
 
     }
 

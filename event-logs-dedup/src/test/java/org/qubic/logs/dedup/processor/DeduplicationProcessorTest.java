@@ -39,7 +39,7 @@ class DeduplicationProcessorTest {
 
     @Test
     void process_givenUnique_thenForward() {
-        EventLog event = EventLog.builder().epoch(123).logId(2).tickNumber(100).index(1).type(3).logDigest("digest").build();
+        EventLog event = EventLog.builder().epoch(123).logId(2).tickNumber(100).index(1).type(3).logDigest("digest").timestamp(100123654).build();
         Record<String, EventLog> record = new Record<>("key", event, 1000L);
         WindowStoreIterator<String> iterator = mock();
         when(iterator.hasNext()).thenReturn(false);
@@ -48,17 +48,17 @@ class DeduplicationProcessorTest {
         processor.process(record);
 
         verify(context).forward(record);
-        verify(stateStore).put(eq("123:2"), eq("100:1:3:digest"), anyLong());
+        verify(stateStore).put(eq("123:2"), eq("100:1:3:digest:100123654"), anyLong());
         assertThat(metrics.get("dedup.messages.unique").counter().count()).isEqualTo(1.0);
     }
 
     @Test
     void process_givenDuplicate_thenDoNotForward() {
-        EventLog event = EventLog.builder().epoch(123).logId(2).tickNumber(100).index(1).type(3).logDigest("digest").build();
+        EventLog event = EventLog.builder().epoch(123).logId(2).tickNumber(100).index(1).type(3).logDigest("digest").timestamp(100123654).build();
         Record<String, EventLog> record = new Record<>("key", event, 1000L);
         WindowStoreIterator<String> iterator = mock();
         when(iterator.hasNext()).thenReturn(true, false);
-        when(iterator.next()).thenReturn(KeyValue.pair(666L, "100:1:3:digest"));
+        when(iterator.next()).thenReturn(KeyValue.pair(666L, "100:1:3:digest:100123654"));
         when(stateStore.fetch(eq("123:2"), any(), any())).thenReturn(iterator);
 
         processor.process(record);
@@ -86,7 +86,7 @@ class DeduplicationProcessorTest {
         Record<String, EventLog> record = new Record<>("key", event, 2000L);
         WindowStoreIterator<String> iterator = mock();
         when(iterator.hasNext()).thenReturn(true, false);
-        when(iterator.next()).thenReturn(KeyValue.pair(666L, "0:0:0:null"));
+        when(iterator.next()).thenReturn(KeyValue.pair(666L, "0:0:0:null:0"));
         when(stateStore.fetch(eq("123:2"), any(), any())).thenReturn(iterator);
 
         Record<String, EventLog> result = processor.processRecord(record);
@@ -103,7 +103,7 @@ class DeduplicationProcessorTest {
         // return erroneous duplicate
         WindowStoreIterator<String> iterator = mock();
         when(iterator.hasNext()).thenReturn(true, true, false); // hasNext is called twice
-        when(iterator.next()).thenReturn(KeyValue.pair(666L, "666:1:2:wrong"));
+        when(iterator.next()).thenReturn(KeyValue.pair(666L, "666:1:2:wrong:0"));
         when(stateStore.fetch(eq("123:4"), any(), any())).thenReturn(iterator);
 
         // without ignoring, we would throw
@@ -123,7 +123,7 @@ class DeduplicationProcessorTest {
         // return erroneous duplicate
         WindowStoreIterator<String> iterator = mock();
         when(iterator.hasNext()).thenReturn(true, true, false); // hasNext is called twice
-        when(iterator.next()).thenReturn(KeyValue.pair(666L, "666:1:2:wrong"));
+        when(iterator.next()).thenReturn(KeyValue.pair(666L, "666:1:2:wrong:0"));
         when(stateStore.fetch(eq("123:456"), any(), any())).thenReturn(iterator);
 
         // without ignoring, we would throw
@@ -138,7 +138,7 @@ class DeduplicationProcessorTest {
         // Same dedupKey (epoch:logId) but different dedupValue (index differs)
         EventLog event = EventLog.builder()
                 .epoch(123).logId(2)
-                .tickNumber(100).index(1).type(3).logDigest("digest")
+                .tickNumber(100).index(1).type(3).logDigest("digest").timestamp(100123654)
                 .build();
         Record<String, EventLog> record = new Record<>("key", event, 1000L);
 
@@ -146,7 +146,7 @@ class DeduplicationProcessorTest {
         // First hasNext() -> true (isDuplicate), then loop: true, then false
         when(iterator.hasNext()).thenReturn(true, true, true, false);
         // Provide a mismatching dedupValue (index differs: 2 instead of 1)
-        when(iterator.next()).thenReturn(KeyValue.pair(666L, "100:2:3:digest"));
+        when(iterator.next()).thenReturn(KeyValue.pair(666L, "100:2:3:digest:100123654"));
         when(stateStore.fetch(eq("123:2"), any(), any())).thenReturn(iterator);
 
         assertThatThrownBy(() -> processor.process(record))
