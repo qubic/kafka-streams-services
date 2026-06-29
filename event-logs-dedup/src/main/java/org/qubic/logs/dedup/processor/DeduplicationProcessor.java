@@ -102,7 +102,7 @@ public class DeduplicationProcessor implements Processor<String, EventLog, Strin
         }
 
         String dedupKey = String.format("%d:%d", event.getEpoch(), event.getLogId());
-        String dedupValue = String.format("%d:%d:%d:%s", event.getTickNumber(), event.getIndex(), event.getType(), StringUtils.defaultIfBlank(event.getLogDigest(), BLANK));
+        String dedupValue = String.format("%d:%d:%d:%s:%d", event.getTickNumber(), event.getIndex(), event.getType(), StringUtils.defaultIfBlank(event.getLogDigest(), BLANK), event.getTimestamp());
 
         Instant recordTime = Instant.ofEpochMilli(record.timestamp());
         // Truncate timestamp to one-minute granularity to enable overwriting within the same minute
